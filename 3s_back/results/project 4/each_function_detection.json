@@ -1,0 +1,1392 @@
+[
+    {
+        "function_id": "arm-asm.c::asm_parse_vfp_regvar",
+        "caller": [
+            "arm-asm.c::parse_operand",
+            "arm-asm.c::asm_floating_point_block_data_transfer_opcode"
+        ],
+        "callee": [],
+        "function_content": "static int asm_parse_vfp_regvar(int t, int double_precision)\r\n{\r\n    if (double_precision) {\r\n        if (t >= TOK_ASM_d0 && t <= TOK_ASM_d15)\r\n            return t - TOK_ASM_d0;\r\n    } else {\r\n        if (t >= TOK_ASM_s0 && t <= TOK_ASM_s31)\r\n            return t - TOK_ASM_s0;\r\n    }\r\n    return -1;\r\n}",
+        "function_name": "asm_parse_vfp_regvar",
+        "file_path": "arm-asm.c",
+        "language": "c",
+        "caller_num": 2,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-703",
+                "description": "函数没有对输入参数 t 进行验证，可能导致返回无效值。",
+                "defect_index": 0.3,
+                "repair_rate": 0.85,
+                "impact_degree": 0.4
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-129",
+                "description": "可能存在数组越界访问风险，如果参数 t 超出定义的范围。",
+                "defect_index": 0.7,
+                "repair_rate": 0.75,
+                "impact_degree": 0.6
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.5,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.2,
+            "CWE_id": "CWE-129",
+            "description": "可能存在数组越界访问风险，如果参数 t 超出定义的范围。",
+            "defect_index": 0.7,
+            "repair_rate": 0.75,
+            "impact_degree": 0.6
+        },
+        "repairs": {
+            "repair_advice": "在函数开始处增加对参数 t 的有效范围检查，以确保其在定义的范围内，避免数组越界访问风险。",
+            "repair_patch": "- return t - TOK_ASM_d0;\n+ if (t < TOK_ASM_d0 || t > TOK_ASM_d15) return -1;\n+ return t - TOK_ASM_d0;\n- return t - TOK_ASM_s0;\n+ if (t < TOK_ASM_s0 || t > TOK_ASM_s31) return -1;\n+ return t - TOK_ASM_s0;",
+            "repair_code": "static int asm_parse_vfp_regvar(int t, int double_precision)\n{\n    if (double_precision) {\n        if (t < TOK_ASM_d0 || t > TOK_ASM_d15) return -1;\n        return t - TOK_ASM_d0;\n    } else {\n        if (t < TOK_ASM_s0 || t > TOK_ASM_s31) return -1;\n        return t - TOK_ASM_s0;\n    }\n    return -1;\n}"
+        }
+    },
+    {
+        "function_id": "arm-asm.c::parse_operand",
+        "caller": [
+            "arm-asm.c::asm_parse_optional_shift",
+            "arm-asm.c::asm_misc_single_data_transfer_opcode",
+            "arm-asm.c::asm_coprocessor_opcode",
+            "arm-asm.c::asm_floating_point_vcvt_data_processing_opcode",
+            "arm-asm.c::asm_floating_point_single_data_transfer_opcode",
+            "arm-asm.c::asm_floating_point_status_register_opcode",
+            "arm-asm.c::asm_shift_opcode",
+            "arm-asm.c::asm_branch_opcode",
+            "arm-asm.c::asm_floating_point_block_data_transfer_opcode",
+            "arm-asm.c::asm_long_multiplication_opcode",
+            "arm-asm.c::asm_binary_opcode",
+            "arm-asm.c::asm_unary_opcode",
+            "arm-asm.c::asm_multiplication_opcode",
+            "arm-asm.c::asm_coprocessor_data_transfer_opcode",
+            "arm-asm.c::asm_data_processing_opcode",
+            "arm-asm.c::asm_block_data_transfer_opcode",
+            "arm-asm.c::asm_floating_point_data_processing_opcode",
+            "arm-asm.c::asm_single_data_transfer_opcode"
+        ],
+        "callee": [
+            "tccasm.c::asm_expr",
+            "arm-asm.c::asm_parse_vfp_regvar",
+            "tccpp.c::expect",
+            "tccpp.c::next",
+            "riscv64-asm.c::asm_parse_regvar",
+            "tccpp.c::skip"
+        ],
+        "function_content": "static void parse_operand(TCCState *s1, Operand *op)\r\n{\r\n    ExprValue e;\r\n    int8_t reg;\r\n    uint16_t regset = 0;\r\n\r\n    op->type = 0;\r\n\r\n    if (tok == '{') { // regset literal\r\n        next(); // skip '{'\r\n        while (tok != '}' && tok != TOK_EOF) {\r\n            reg = asm_parse_regvar(tok);\r\n            if (reg == -1) {\r\n                expect(\"register\");\r\n            } else\r\n                next(); // skip register name\r\n\r\n            if ((1 << reg) < regset)\r\n                tcc_warning(\"registers will be processed in ascending order by hardware--but are not specified in ascending order here\");\r\n            regset |= 1 << reg;\r\n            if (tok != ',')\r\n                break;\r\n            next(); // skip ','\r\n        }\r\n        skip('}');\r\n        if (regset == 0) {\r\n            // ARM instructions don't support empty regset.\r\n            tcc_error(\"empty register list is not supported\");\r\n        } else {\r\n            op->type = OP_REGSET32;\r\n            op->regset = regset;\r\n        }\r\n        return;\r\n    } else if ((reg = asm_parse_regvar(tok)) != -1) {\r\n        next(); // skip register name\r\n        op->type = OP_REG32;\r\n        op->reg = (uint8_t) reg;\r\n        return;\r\n    } else if ((reg = asm_parse_vfp_regvar(tok, 0)) != -1) {\r\n        next(); // skip register name\r\n        op->type = OP_VREG32;\r\n        op->reg = (uint8_t) reg;\r\n        return;\r\n    } else if ((reg = asm_parse_vfp_regvar(tok, 1)) != -1) {\r\n        next(); // skip register name\r\n        op->type = OP_VREG64;\r\n        op->reg = (uint8_t) reg;\r\n        return;\r\n    } else if (tok == '#' || tok == '$') {\r\n        /* constant value */\r\n        next(); // skip '#' or '$'\r\n    }\r\n    asm_expr(s1, &e);\r\n    op->type = OP_IM32;\r\n    op->e = e;\r\n    if (!op->e.sym) {\r\n        if ((int) op->e.v < 0 && (int) op->e.v >= -255)\r\n            op->type = OP_IM8N;\r\n        else if (op->e.v == (uint8_t)op->e.v)\r\n            op->type = OP_IM8;\r\n    } else\r\n        expect(\"operand\");\r\n}",
+        "function_name": "parse_operand",
+        "file_path": "arm-asm.c",
+        "language": "c",
+        "caller_num": 18,
+        "callee_num": 6,
+        "defects": [
+            {
+                "defect_rate": 0.3,
+                "CWE_id": "CWE-476",
+                "description": "可能存在使用未初始化变量的风险，特别是在表达式 evaluation 时。",
+                "defect_index": 0.65,
+                "repair_rate": 0.7,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-680",
+                "description": "在处理不受支持的情况时未采取适当的安全措施，例如空寄存器集的处理。",
+                "defect_index": 0.55,
+                "repair_rate": 0.6,
+                "impact_degree": 0.45
+            },
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-404",
+                "description": "可能导致资源泄露，特别是在错误处理部分，例如 tcc_warning 和 tcc_error 中。",
+                "defect_index": 0.5,
+                "repair_rate": 0.75,
+                "impact_degree": 0.4
+            }
+        ],
+        "defect_num": 4,
+        "avg_defect_index": 0.5375000000000001,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.3,
+            "CWE_id": "CWE-476",
+            "description": "可能存在使用未初始化变量的风险，特别是在表达式 evaluation 时。",
+            "defect_index": 0.65,
+            "repair_rate": 0.7,
+            "impact_degree": 0.5
+        },
+        "repairs": {
+            "repair_advice": "在使用寄存器或操作数之前，应确保它们已被初始化，以避免未初始化变量使用的潜在风险。为此，我们需要在使用这些变量之前进行适当的初始化和错误检查。",
+            "repair_patch": "- uint16_t regset = 0;\n+ uint16_t regset = 0;\n+ int8_t reg = -1;\n",
+            "repair_code": "static void parse_operand(TCCState *s1, Operand *op)\n{\n    ExprValue e;\n    int8_t reg = -1;\n    uint16_t regset = 0;\n\n    op->type = 0;\n\n    if (tok == '{') { // regset literal\n        next(); // skip '{'\n        while (tok != '}' && tok != TOK_EOF) {\n            reg = asm_parse_regvar(tok);\n            if (reg == -1) {\n                expect(\"register\");\n            } else\n                next(); // skip register name\n\n            if ((1 << reg) < regset)\n                tcc_warning(\"registers will be processed in ascending order by hardware--but are not specified in ascending order here\");\n            regset |= 1 << reg;\n            if (tok != ',')\n                break;\n            next(); // skip ','\n        }\n        skip('}');\n        if (regset == 0) {\n            // ARM instructions don't support empty regset.\n            tcc_error(\"empty register list is not supported\");\n        } else {\n            op->type = OP_REGSET32;\n            op->regset = regset;\n        }\n        return;\n    } else if ((reg = asm_parse_regvar(tok)) != -1) {\n        next(); // skip register name\n        op->type = OP_REG32;\n        op->reg = (uint8_t) reg;\n        return;\n    } else if ((reg = asm_parse_vfp_regvar(tok, 0)) != -1) {\n        next(); // skip register name\n        op->type = OP_VREG32;\n        op->reg = (uint8_t) reg;\n        return;\n    } else if ((reg = asm_parse_vfp_regvar(tok, 1)) != -1) {\n        next(); // skip register name\n        op->type = OP_VREG64;\n        op->reg = (uint8_t) reg;\n        return;\n    } else if (tok == '#' || tok == '$') {\n        /* constant value */\n        next(); // skip '#' or '$'\n    }\n    asm_expr(s1, &e);\n    op->type = OP_IM32;\n    op->e = e;\n    if (!op->e.sym) {\n        if ((int) op->e.v < 0 && (int) op->e.v >= -255)\n            op->type = OP_IM8N;\n        else if (op->e.v == (uint8_t)op->e.v)\n            op->type = OP_IM8;\n    } else\n        expect(\"operand\");\n}"
+        }
+    },
+    {
+        "function_id": "arm-asm.c::g",
+        "caller": [
+            "arm-asm.c::gen_le16"
+        ],
+        "callee": [
+            "tccelf.c::section_realloc"
+        ],
+        "function_content": "ST_FUNC void g(int c)\r\n{\r\n    int ind1;\r\n    if (nocode_wanted)\r\n        return;\r\n    ind1 = ind + 1;\r\n    if (ind1 > cur_text_section->data_allocated)\r\n        section_realloc(cur_text_section, ind1);\r\n    cur_text_section->data[ind] = c;\r\n    ind = ind1;\r\n}",
+        "function_name": "g",
+        "file_path": "arm-asm.c",
+        "language": "c",
+        "caller_num": 1,
+        "callee_num": 1,
+        "defects": [
+            {
+                "defect_rate": 0.4,
+                "CWE_id": "CWE-789",
+                "description": "可能存在使用未初始化变量的风险，特别是变量'ind'的初始化未在函数体内进行。",
+                "defect_index": 0.7,
+                "repair_rate": 0.8,
+                "impact_degree": 0.6
+            },
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-401",
+                "description": "可能导致内存泄漏，特别是在调用'section_realloc'后没有适当处理返回值。",
+                "defect_index": 0.55,
+                "repair_rate": 0.85,
+                "impact_degree": 0.4
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.6333333333333334,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.4,
+            "CWE_id": "CWE-789",
+            "description": "可能存在使用未初始化变量的风险，特别是变量'ind'的初始化未在函数体内进行。",
+            "defect_index": 0.7,
+            "repair_rate": 0.8,
+            "impact_degree": 0.6
+        },
+        "repairs": {
+            "repair_advice": "在对变量'ind'使用之前，确保它已经被正确初始化，以避免使用未初始化的变量带来的不确定性和潜在错误。",
+            "repair_patch": "- int ind1;\n+ int ind1 = 0;",
+            "repair_code": "ST_FUNC void g(int c)\n{\n    int ind1 = 0;\n    if (nocode_wanted)\n        return;\n    ind1 = ind + 1;\n    if (ind1 > cur_text_section->data_allocated)\n        section_realloc(cur_text_section, ind1);\n    cur_text_section->data[ind] = c;\n    ind = ind1;\n}"
+        }
+    },
+    {
+        "function_id": "arm-asm.c::gen_le16",
+        "caller": [],
+        "callee": [
+            "arm-asm.c::g"
+        ],
+        "function_content": "ST_FUNC void gen_le16 (int i)\r\n{\r\n    g(i);\r\n    g(i>>8);\r\n}",
+        "function_name": "gen_le16",
+        "file_path": "arm-asm.c",
+        "language": "c",
+        "caller_num": 0,
+        "callee_num": 1,
+        "defects": [
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-476",
+                "description": "可能存在缓冲区溢出风险，如果函数g处理不当，传入的参数可能导致内存越界。",
+                "defect_index": 0.25,
+                "repair_rate": 0.85,
+                "impact_degree": 0.3
+            },
+            {
+                "defect_rate": 0.35,
+                "CWE_id": "CWE-121",
+                "description": "可能存在整数溢出问题，尤其是在i很大的情况下，移位运算可能导致值溢出。",
+                "defect_index": 0.75,
+                "repair_rate": 0.5,
+                "impact_degree": 0.6
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.5,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.35,
+            "CWE_id": "CWE-121",
+            "description": "可能存在整数溢出问题，尤其是在i很大的情况下，移位运算可能导致值溢出。",
+            "defect_index": 0.75,
+            "repair_rate": 0.5,
+            "impact_degree": 0.6
+        },
+        "repairs": {
+            "repair_advice": "在执行位移运算之前，应该验证输入参数是否在合理的范围内，以避免整数溢出问题，特别是在处理大数值时。可以使用条件语句检查 i 的值，确保其不会导致溢出。",
+            "repair_patch": "- g(i);\n- g(i>>8);\n+ if (i >= 0 && i <= (1 << 16) - 1) {\n+     g(i);\n+     g(i >> 8);\n+ } else {\n+     // 处理溢出情况，如返回错误或抛出异常\n+ }",
+            "repair_code": "ST_FUNC void gen_le16(int i) {\n    if (i >= 0 && i <= (1 << 16) - 1) {\n        g(i);\n        g(i >> 8);\n    } else {\n        // 处理溢出情况，如返回错误或抛出异常\n    }\n}"
+        }
+    },
+    {
+        "function_id": "arm-asm.c::gen_le32",
+        "caller": [
+            "arm-asm.c::asm_emit_opcode",
+            "arm-asm.c::asm_emit_unconditional_opcode",
+            "arm-asm.c::asm_gen_code",
+            "arm-asm.c::gen_expr32"
+        ],
+        "callee": [
+            "tccelf.c::section_realloc"
+        ],
+        "function_content": "ST_FUNC void gen_le32 (int i)\r\n{\r\n    int ind1;\r\n    if (nocode_wanted)\r\n        return;\r\n    ind1 = ind + 4;\r\n    if (ind1 > cur_text_section->data_allocated)\r\n        section_realloc(cur_text_section, ind1);\r\n    cur_text_section->data[ind++] = i & 0xFF;\r\n    cur_text_section->data[ind++] = (i >> 8) & 0xFF;\r\n    cur_text_section->data[ind++] = (i >> 16) & 0xFF;\r\n    cur_text_section->data[ind++] = (i >> 24) & 0xFF;\r\n}",
+        "function_name": "gen_le32",
+        "file_path": "arm-asm.c",
+        "language": "c",
+        "caller_num": 4,
+        "callee_num": 1,
+        "defects": [
+            {
+                "defect_rate": 0.3,
+                "CWE_id": "CWE-119",
+                "description": "缓冲区溢出可能性，ind 超过 data_allocated 时未保护",
+                "defect_index": 0.75,
+                "repair_rate": 0.85,
+                "impact_degree": 0.6
+            },
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-121",
+                "description": "整数溢出可能性，ind1 计算后未检查是否溢出",
+                "defect_index": 0.9,
+                "repair_rate": 0.7,
+                "impact_degree": 0.65
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.825,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.3,
+            "CWE_id": "CWE-119",
+            "description": "缓冲区溢出可能性，ind 超过 data_allocated 时未保护",
+            "defect_index": 0.75,
+            "repair_rate": 0.85,
+            "impact_degree": 0.6
+        },
+        "repairs": {
+            "repair_advice": "在更新数据之前，需要确保 'ind' 不会超出 'data_allocated' 的范围。应在写入数据前进行数据缓冲区的边界检查，以防止缓冲区溢出漏洞。",
+            "repair_patch": "- cur_text_section->data[ind++] = i & 0xFF;\n+ if (ind + 4 <= cur_text_section->data_allocated) {\n+     cur_text_section->data[ind++] = i & 0xFF;\n+     cur_text_section->data[ind++] = (i >> 8) & 0xFF;\n+     cur_text_section->data[ind++] = (i >> 16) & 0xFF;\n+     cur_text_section->data[ind++] = (i >> 24) & 0xFF;\n+ } else {\n+     // Handle error: buffer overflow risk\n+ }",
+            "repair_code": "ST_FUNC void gen_le32 (int i) {\n    int ind1;\n    if (nocode_wanted)\n        return;\n    ind1 = ind + 4;\n    if (ind1 > cur_text_section->data_allocated)\n        section_realloc(cur_text_section, ind1);\n    if (ind + 4 <= cur_text_section->data_allocated) {\n        cur_text_section->data[ind++] = i & 0xFF;\n        cur_text_section->data[ind++] = (i >> 8) & 0xFF;\n        cur_text_section->data[ind++] = (i >> 16) & 0xFF;\n        cur_text_section->data[ind++] = (i >> 24) & 0xFF;\n    } else {\n        // Handle error: buffer overflow risk\n    }\n}"
+        }
+    },
+    {
+        "function_id": "arm-gen.c::arm_init",
+        "caller": [
+            "tccgen.c::tccgen_compile"
+        ],
+        "callee": [],
+        "function_content": "ST_FUNC void arm_init(struct TCCState *s)\r\n{\r\n#if 0\r\n#if !defined (TCC_ARM_VFP)\r\n    tcc_warning(\"Support for FPA is deprecated and will be removed in next\"\r\n                \" release\");\r\n#endif\r\n#if !defined (TCC_ARM_EABI)\r\n    tcc_warning(\"Support for OABI is deprecated and will be removed in next\"\r\n                \" release\");\r\n#endif\r\n#endif\r\n}",
+        "function_name": "arm_init",
+        "file_path": "arm-gen.c",
+        "language": "c",
+        "caller_num": 1,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-401",
+                "description": "函数中包含的代码块被条件编译锁定，导致相关功能警告被忽略。",
+                "defect_index": 0.2,
+                "repair_rate": 0.85,
+                "impact_degree": 0.3
+            },
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-476",
+                "description": "可能存在未使用的参数，导致代码可读性降低和潜在的逻辑问题。",
+                "defect_index": 0.35,
+                "repair_rate": 0.7,
+                "impact_degree": 0.4
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.275,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.25,
+            "CWE_id": "CWE-476",
+            "description": "可能存在未使用的参数，导致代码可读性降低和潜在的逻辑问题。",
+            "defect_index": 0.35,
+            "repair_rate": 0.7,
+            "impact_degree": 0.4
+        },
+        "repairs": {
+            "repair_advice": "移除未使用的参数和条件编译块，以提高代码可读性。同时，添加对结构体指针's'的用途说明，确保代码逻辑清晰且无冗余。",
+            "repair_patch": "- #if 0\n- #if !defined (TCC_ARM_VFP)\n-     tcc_warning(\"Support for FPA is deprecated and will be removed in next\"\n-                 \" release\");\n- #endif\n- #if !defined (TCC_ARM_EABI)\n-     tcc_warning(\"Support for OABI is deprecated and will be removed in next\"\n-                 \" release\");\n- #endif\n- #endif\n+ // 此函数用于初始化 ARM 相关状态，在将来可进一步扩展\n",
+            "repair_code": "ST_FUNC void arm_init(struct TCCState *s)\n{\n    // 此函数用于初始化 ARM 相关状态，在将来可进一步扩展\n}"
+        }
+    },
+    {
+        "function_id": "arm-gen.c::two2mask",
+        "caller": [
+            "arm-gen.c::gen_opf",
+            "arm-gen.c::gen_opi"
+        ],
+        "callee": [],
+        "function_content": "static int two2mask(int a,int b) {\r\n  if (!CHECK_R(a) || !CHECK_R(b))\r\n    tcc_error(\"compiler error! registers %i,%i is not valid\",a,b);\r\n  return (reg_classes[a]|reg_classes[b])&~(RC_INT|RC_FLOAT);\r\n}",
+        "function_name": "two2mask",
+        "file_path": "arm-gen.c",
+        "language": "c",
+        "caller_num": 2,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.35,
+                "CWE_id": "CWE-119",
+                "description": "函数在打印错误信息时，没有正确处理输出参数，可能导致未定义行为。",
+                "defect_index": 0.6,
+                "repair_rate": 0.8,
+                "impact_degree": 0.4
+            },
+            {
+                "defect_rate": 0.4,
+                "CWE_id": "CWE-121",
+                "description": "可能存在整数溢出或下溢，当输入参数超出预设范围时，可能造成错误输出。",
+                "defect_index": 0.85,
+                "repair_rate": 0.6,
+                "impact_degree": 0.7
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.725,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.4,
+            "CWE_id": "CWE-121",
+            "description": "可能存在整数溢出或下溢，当输入参数超出预设范围时，可能造成错误输出。",
+            "defect_index": 0.85,
+            "repair_rate": 0.6,
+            "impact_degree": 0.7
+        },
+        "repairs": {
+            "repair_advice": "在进行位运算之前，应该验证输入参数的有效范围，以避免整数溢出或下溢的问题。可以在函数开始时添加输入范围检查。",
+            "repair_patch": "- return (reg_classes[a]|reg_classes[b])&~(RC_INT|RC_FLOAT);\n+ if (a < 0 || b < 0 || a >= MAX_REG || b >= MAX_REG) {\n+     tcc_error(\"Invalid register index: %i or %i\", a, b);\n+ }\n+ return (reg_classes[a]|reg_classes[b])&~(RC_INT|RC_FLOAT);",
+            "repair_code": "static int two2mask(int a, int b) {\n    if (!CHECK_R(a) || !CHECK_R(b))\n        tcc_error(\"compiler error! registers %i,%i is not valid\", a, b);\n    if (a < 0 || b < 0 || a >= MAX_REG || b >= MAX_REG) {\n        tcc_error(\"Invalid register index: %i or %i\", a, b);\n    }\n    return (reg_classes[a]|reg_classes[b])&~(RC_INT|RC_FLOAT);\n}"
+        }
+    },
+    {
+        "function_id": "arm-gen.c::regmask",
+        "caller": [
+            "arm-gen.c::copy_params",
+            "arm-gen.c::gen_opf",
+            "arm-gen.c::gen_opi"
+        ],
+        "callee": [],
+        "function_content": "static int regmask(int r) {\r\n  if (!CHECK_R(r))\r\n    tcc_error(\"compiler error! register %i is not valid\",r);\r\n  return reg_classes[r]&~(RC_INT|RC_FLOAT);\r\n}",
+        "function_name": "regmask",
+        "file_path": "arm-gen.c",
+        "language": "c",
+        "caller_num": 3,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.4,
+                "CWE_id": "CWE-20",
+                "description": "缺乏输入验证，可能使攻击者利用不正确的寄存器值进行攻击",
+                "defect_index": 0.75,
+                "repair_rate": 0.6,
+                "impact_degree": 0.7
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.6166666666666667,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.4,
+            "CWE_id": "CWE-20",
+            "description": "缺乏输入验证，可能使攻击者利用不正确的寄存器值进行攻击",
+            "defect_index": 0.75,
+            "repair_rate": 0.6,
+            "impact_degree": 0.7
+        },
+        "repairs": {
+            "repair_advice": "在执行寄存器处理之前，应该验证输入寄存器值是否在有效范围内，以避免潜在的安全漏洞和错误。",
+            "repair_patch": "- return reg_classes[r]&~(RC_INT|RC_FLOAT);\n+ if (r < 0 || r >= MAX_REG_NUMBER) {\n+     tcc_error(\"Invalid register: %i\", r);\n+     return -1;  // 或其他处理机制\n+ }\n+ return reg_classes[r]&~(RC_INT|RC_FLOAT);",
+            "repair_code": "static int regmask(int r) {\n    if (r < 0 || r >= MAX_REG_NUMBER) {\n        tcc_error(\"Invalid register: %i\", r);\n        return -1;  // 或其他处理机制\n    }\n    return reg_classes[r]&~(RC_INT|RC_FLOAT);\n}"
+        }
+    },
+    {
+        "function_id": "arm-gen.c::o",
+        "caller": [
+            "arm-gen.c::gjmp",
+            "arm-gen.c::gen_increment_tcov",
+            "arm-gen.c::store",
+            "arm-gen.c::copy_params",
+            "arm-gen.c::gjmp_cond",
+            "arm-gen.c::load",
+            "arm-gen.c::stuff_const_harder",
+            "arm-gen.c::gen_bounds_epilog",
+            "arm-gen.c::gen_vla_alloc",
+            "arm-gen.c::gen_cvt_ftof",
+            "arm-gen.c::gfunc_call",
+            "arm-gen.c::gen_opi",
+            "arm-gen.c::gen_cvt_itof",
+            "arm-gen.c::gen_opf",
+            "arm-gen.c::gen_cvt_ftoi",
+            "arm-gen.c::calcaddr",
+            "arm-gen.c::gen_bounds_prolog",
+            "arm-gen.c::gcall_or_jmp",
+            "arm-gen.c::gen_bounds_call",
+            "arm-gen.c::gfunc_prolog",
+            "arm-gen.c::gen_fill_nops",
+            "arm-gen.c::load_value",
+            "arm-gen.c::gfunc_epilog"
+        ],
+        "callee": [
+            "tccelf.c::section_realloc"
+        ],
+        "function_content": "void o(uint32_t i)\r\n{\r\n  /* this is a good place to start adding big-endian support*/\r\n  int ind1;\r\n  if (nocode_wanted)\r\n    return;\r\n  ind1 = ind + 4;\r\n  if (!cur_text_section)\r\n    tcc_error(\"compiler error! This happens f.ex. if the compiler\\n\"\r\n         \"can't evaluate constant expressions outside of a function.\");\r\n  if (ind1 > cur_text_section->data_allocated)\r\n    section_realloc(cur_text_section, ind1);\r\n  cur_text_section->data[ind++] = i&255;\r\n  i>>=8;\r\n  cur_text_section->data[ind++] = i&255;\r\n  i>>=8;\r\n  cur_text_section->data[ind++] = i&255;\r\n  i>>=8;\r\n  cur_text_section->data[ind++] = i;\r\n}",
+        "function_name": "o",
+        "file_path": "arm-gen.c",
+        "language": "c",
+        "caller_num": 23,
+        "callee_num": 1,
+        "defects": [
+            {
+                "defect_rate": 0.3,
+                "CWE_id": "CWE-130",
+                "description": "如果 cur_text_section->data_allocated 小于 ind1，可能会导致错误的内存访问。",
+                "defect_index": 0.8,
+                "repair_rate": 0.75,
+                "impact_degree": 0.7
+            },
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-404",
+                "description": "未检查传入参数 i 的有效性，可能导致意外的结果。",
+                "defect_index": 0.5,
+                "repair_rate": 0.7,
+                "impact_degree": 0.4
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.65,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.3,
+            "CWE_id": "CWE-130",
+            "description": "如果 cur_text_section->data_allocated 小于 ind1，可能会导致错误的内存访问。",
+            "defect_index": 0.8,
+            "repair_rate": 0.75,
+            "impact_degree": 0.7
+        },
+        "repairs": {
+            "repair_advice": "在访问 cur_text_section->data 数组之前，确保 ind1 不超过 cur_text_section->data_allocated 的界限，以防止非法内存访问。增加对 ind 的检查，以确保它不会在访问数组时超出分配的范围。",
+            "repair_patch": "- if (ind1 > cur_text_section->data_allocated)\n+ if (ind1 >= cur_text_section->data_allocated)\n+ {\n+     tcc_error(\"Index out of bounds: ind1 exceeds allocated data size.\");\n+     return;\n+ }",
+            "repair_code": "void o(uint32_t i)\n{\n  int ind1;\n  if (nocode_wanted)\n    return;\n  ind1 = ind + 4;\n  if (!cur_text_section)\n    tcc_error(\"compiler error! This happens f.ex. if the compiler\\n\"\n         \"can't evaluate constant expressions outside of a function.\");\n  if (ind1 >= cur_text_section->data_allocated)\n  {\n      tcc_error(\"Index out of bounds: ind1 exceeds allocated data size.\");\n      return;\n  }\n  section_realloc(cur_text_section, ind1);\n  cur_text_section->data[ind++] = i&255;\n  i>>=8;\n  cur_text_section->data[ind++] = i&255;\n  i>>=8;\n  cur_text_section->data[ind++] = i&255;\n  i>>=8;\n  cur_text_section->data[ind++] = i;\n}"
+        }
+    },
+    {
+        "function_id": "arm-gen.c::stuff_const",
+        "caller": [
+            "arm-gen.c::stuff_const_harder",
+            "arm-gen.c::gen_vla_alloc",
+            "arm-gen.c::gen_opi",
+            "arm-gen.c::load",
+            "arm-gen.c::gfunc_epilog",
+            "arm-gen.c::calcaddr"
+        ],
+        "callee": [],
+        "function_content": "static uint32_t stuff_const(uint32_t op, uint32_t c)\r\n{\r\n  int try_neg=0;\r\n  uint32_t nc = 0, negop = 0;\r\n\r\n  switch(op&0x1F00000)\r\n  {\r\n    case 0x800000: //add\r\n    case 0x400000: //sub\r\n      try_neg=1;\r\n      negop=op^0xC00000;\r\n      nc=-c;\r\n      break;\r\n    case 0x1A00000: //mov\r\n    case 0x1E00000: //mvn\r\n      try_neg=1;\r\n      negop=op^0x400000;\r\n      nc=~c;\r\n      break;\r\n    case 0x200000: //xor\r\n      if(c==~0)\r\n\treturn (op&0xF010F000)|((op>>16)&0xF)|0x1E00000;\r\n      break;\r\n    case 0x0: //and\r\n      if(c==~0)\r\n\treturn (op&0xF010F000)|((op>>16)&0xF)|0x1A00000;\r\n    case 0x1C00000: //bic\r\n      try_neg=1;\r\n      negop=op^0x1C00000;\r\n      nc=~c;\r\n      break;\r\n    case 0x1800000: //orr\r\n      if(c==~0)\r\n\treturn (op&0xFFF0FFFF)|0x1E00000;\r\n      break;\r\n  }\r\n  do {\r\n    uint32_t m;\r\n    int i;\r\n    if(c<256) /* catch undefined <<32 */\r\n      return op|c;\r\n    for(i=2;i<32;i+=2) {\r\n      m=(0xff>>i)|(0xff<<(32-i));\r\n      if(!(c&~m))\r\n\treturn op|(i<<7)|(c<<i)|(c>>(32-i));\r\n    }\r\n    op=negop;\r\n    c=nc;\r\n  } while(try_neg--);\r\n  return 0;\r\n}",
+        "function_name": "stuff_const",
+        "file_path": "arm-gen.c",
+        "language": "c",
+        "caller_num": 6,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-119",
+                "description": "函数可能存在整数溢出问题，特别是在对变量进行位运算或数学运算时，如返回的 nc 和 negop。",
+                "defect_index": 0.45,
+                "repair_rate": 0.8,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-684",
+                "description": "未正确处理参数值，尤其是对变量 c 的处理，可能导致不符合预期的逻辑",
+                "defect_index": 0.6,
+                "repair_rate": 0.75,
+                "impact_degree": 0.4
+            },
+            {
+                "defect_rate": 0.3,
+                "CWE_id": "CWE-191",
+                "description": "对变量 nc 和 negop 的赋值可能引起未定义的行为。",
+                "defect_index": 0.7,
+                "repair_rate": 0.65,
+                "impact_degree": 0.55
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.5833333333333334,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.3,
+            "CWE_id": "CWE-191",
+            "description": "对变量 nc 和 negop 的赋值可能引起未定义的行为。",
+            "defect_index": 0.7,
+            "repair_rate": 0.65,
+            "impact_degree": 0.55
+        },
+        "repairs": {
+            "repair_advice": "在对变量 nc 和 negop 赋值之前，应该首先检查 c 的值，以确保不会引起未定义的行为。可以通过检查 c 是否为负数或是否会超过 uint32_t 的最大值来避免问题。",
+            "repair_patch": "- nc=-c;\n+ if (c > UINT32_MAX) {\n+     // Handle error, c is out of bounds\n+     return 0;\n+ }\n+ nc = -c;",
+            "repair_code": "static uint32_t stuff_const(uint32_t op, uint32_t c)\n{\n  int try_neg=0;\n  uint32_t nc = 0, negop = 0;\n\n  switch(op&0x1F00000)\n  {\n    case 0x800000: //add\n    case 0x400000: //sub\n      try_neg=1;\n      negop=op^0xC00000;\n+     if (c > UINT32_MAX) {\n+         // Handle error, c is out of bounds\n+         return 0;\n+     }\n      nc = -c;\n      break;\n    case 0x1A00000: //mov\n    case 0x1E00000: //mvn\n      try_neg=1;\n      negop=op^0x400000;\n      nc=~c;\n      break;\n    case 0x200000: //xor\n      if(c==~0)\n\treturn (op&0xF010F000)|((op>>16)&0xF)|0x1E00000;\n      break;\n    case 0x0: //and\n      if(c==~0)\n\treturn (op&0xF010F000)|((op>>16)&0xF)|0x1A00000;\n    case 0x1C00000: //bic\n      try_neg=1;\n      negop=op^0x1C00000;\n      nc=~c;\n      break;\n    case 0x1800000: //orr\n      if(c==~0)\n\treturn (op&0xFFF0FFFF)|0x1E00000;\n      break;\n  }\n  do {\n    uint32_t m;\n    int i;\n    if(c<256) /* catch undefined <<32 */\n      return op|c;\n    for(i=2;i<32;i+=2) {\n      m=(0xff>>i)|(0xff<<(32-i));\n      if(!(c&~m))\n\treturn op|(i<<7)|(c<<i)|(c>>(32-i));\n    }\n    op=negop;\n    c=nc;\n  } while(try_neg--);\n  return 0;\n}"
+        }
+    },
+    {
+        "function_id": "arm-link.c::code_reloc",
+        "caller": [],
+        "callee": [],
+        "function_content": "ST_FUNC int code_reloc (int reloc_type)\r\n{\r\n    switch (reloc_type) {\r\n\tcase R_ARM_MOVT_ABS:\r\n\tcase R_ARM_MOVW_ABS_NC:\r\n\tcase R_ARM_THM_MOVT_ABS:\r\n\tcase R_ARM_THM_MOVW_ABS_NC:\r\n\tcase R_ARM_ABS32:\r\n\tcase R_ARM_REL32:\r\n\tcase R_ARM_GOTPC:\r\n\tcase R_ARM_GOTOFF:\r\n\tcase R_ARM_GOT32:\r\n\tcase R_ARM_GOT_PREL:\r\n\tcase R_ARM_COPY:\r\n\tcase R_ARM_GLOB_DAT:\r\n\tcase R_ARM_NONE:\r\n\tcase R_ARM_TARGET1:\r\n\tcase R_ARM_MOVT_PREL:\r\n\tcase R_ARM_MOVW_PREL_NC:\r\n            return 0;\r\n\r\n        case R_ARM_PC24:\r\n        case R_ARM_CALL:\r\n\tcase R_ARM_JUMP24:\r\n\tcase R_ARM_PLT32:\r\n\tcase R_ARM_THM_PC22:\r\n\tcase R_ARM_THM_JUMP24:\r\n\tcase R_ARM_PREL31:\r\n\tcase R_ARM_V4BX:\r\n\tcase R_ARM_JUMP_SLOT:\r\n            return 1;\r\n    }\r\n    return -1;\r\n}",
+        "function_name": "code_reloc",
+        "file_path": "arm-link.c",
+        "language": "c",
+        "caller_num": 0,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-548",
+                "description": "函数未处理无效的 reloc_type 值，可能导致未定义行为或错误处理。",
+                "defect_index": 0.42,
+                "repair_rate": 0.85,
+                "impact_degree": 0.35
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-703",
+                "description": "函数返回的值未被调用者验证，可能会导致调用者在错误情况处理不当。",
+                "defect_index": 0.5,
+                "repair_rate": 0.7,
+                "impact_degree": 0.6
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.45999999999999996,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.2,
+            "CWE_id": "CWE-703",
+            "description": "函数返回的值未被调用者验证，可能会导致调用者在错误情况处理不当。",
+            "defect_index": 0.5,
+            "repair_rate": 0.7,
+            "impact_degree": 0.6
+        },
+        "repairs": {
+            "repair_advice": "调用者应该验证返回值以确保其有效性，避免未处理的错误情况导致系统崩溃或不正确的行为。建议文档中清楚说明返回值的意义及其需要检查的条件。",
+            "repair_patch": "- return 0;\n+ int result = 0;\n+ if (reloc_type == R_ARM_PC24 || reloc_type == R_ARM_CALL || reloc_type == R_ARM_JUMP24 || reloc_type == R_ARM_PLT32 || reloc_type == R_ARM_THM_PC22 || reloc_type == R_ARM_THM_JUMP24 || reloc_type == R_ARM_PREL31 || reloc_type == R_ARM_V4BX || reloc_type == R_ARM_JUMP_SLOT) {\n+     result = 1;\n+ } else if (reloc_type == R_ARM_MOVT_ABS || reloc_type == R_ARM_MOVW_ABS_NC || reloc_type == R_ARM_THM_MOVT_ABS || reloc_type == R_ARM_THM_MOVW_ABS_NC || reloc_type == R_ARM_ABS32 || reloc_type == R_ARM_REL32 || reloc_type == R_ARM_GOTPC || reloc_type == R_ARM_GOTOFF || reloc_type == R_ARM_GOT32 || reloc_type == R_ARM_GOT_PREL || reloc_type == R_ARM_COPY || reloc_type == R_ARM_GLOB_DAT || reloc_type == R_ARM_NONE || reloc_type == R_ARM_TARGET1 || reloc_type == R_ARM_MOVT_PREL || reloc_type == R_ARM_MOVW_PREL_NC) {\n+     result = 0;\n+ } else {\n+     result = -1;\n+ }\n+ return result;",
+            "repair_code": "ST_FUNC int code_reloc(int reloc_type) {\n    int result = -1;\n    switch (reloc_type) {\n        case R_ARM_MOVT_ABS:\n        case R_ARM_MOVW_ABS_NC:\n        case R_ARM_THM_MOVT_ABS:\n        case R_ARM_THM_MOVW_ABS_NC:\n        case R_ARM_ABS32:\n        case R_ARM_REL32:\n        case R_ARM_GOTPC:\n        case R_ARM_GOTOFF:\n        case R_ARM_GOT32:\n        case R_ARM_GOT_PREL:\n        case R_ARM_COPY:\n        case R_ARM_GLOB_DAT:\n        case R_ARM_NONE:\n        case R_ARM_TARGET1:\n        case R_ARM_MOVT_PREL:\n        case R_ARM_MOVW_PREL_NC:\n            result = 0;\n            break;\n        case R_ARM_PC24:\n        case R_ARM_CALL:\n        case R_ARM_JUMP24:\n        case R_ARM_PLT32:\n        case R_ARM_THM_PC22:\n        case R_ARM_THM_JUMP24:\n        case R_ARM_PREL31:\n        case R_ARM_V4BX:\n        case R_ARM_JUMP_SLOT:\n            result = 1;\n            break;\n    }\n    return result;\n}"
+        }
+    },
+    {
+        "function_id": "arm-link.c::gotplt_entry_type",
+        "caller": [],
+        "callee": [],
+        "function_content": "ST_FUNC int gotplt_entry_type (int reloc_type)\r\n{\r\n    switch (reloc_type) {\r\n\tcase R_ARM_NONE:\r\n\tcase R_ARM_COPY:\r\n\tcase R_ARM_GLOB_DAT:\r\n\tcase R_ARM_JUMP_SLOT:\r\n            return NO_GOTPLT_ENTRY;\r\n\r\n        case R_ARM_PC24:\r\n        case R_ARM_CALL:\r\n\tcase R_ARM_JUMP24:\r\n\tcase R_ARM_PLT32:\r\n\tcase R_ARM_THM_PC22:\r\n\tcase R_ARM_THM_JUMP24:\r\n\tcase R_ARM_MOVT_ABS:\r\n\tcase R_ARM_MOVW_ABS_NC:\r\n\tcase R_ARM_THM_MOVT_ABS:\r\n\tcase R_ARM_THM_MOVW_ABS_NC:\r\n\tcase R_ARM_PREL31:\r\n\tcase R_ARM_ABS32:\r\n\tcase R_ARM_REL32:\r\n\tcase R_ARM_V4BX:\r\n\tcase R_ARM_TARGET1:\r\n\tcase R_ARM_MOVT_PREL:\r\n\tcase R_ARM_MOVW_PREL_NC:\r\n            return AUTO_GOTPLT_ENTRY;\r\n\r\n\tcase R_ARM_GOTPC:\r\n\tcase R_ARM_GOTOFF:\r\n            return BUILD_GOT_ONLY;\r\n\r\n\tcase R_ARM_GOT32:\r\n\tcase R_ARM_GOT_PREL:\r\n            return ALWAYS_GOTPLT_ENTRY;\r\n    }\r\n    return -1;\r\n}",
+        "function_name": "gotplt_entry_type",
+        "file_path": "arm-link.c",
+        "language": "c",
+        "caller_num": 0,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-2",
+                "description": "函数对不合法的输入返回 -1，可能未能清晰指示错误类型。",
+                "defect_index": 0.4,
+                "repair_rate": 0.65,
+                "impact_degree": 0.45
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.375,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.2,
+            "CWE_id": "CWE-2",
+            "description": "函数对不合法的输入返回 -1，可能未能清晰指示错误类型。",
+            "defect_index": 0.4,
+            "repair_rate": 0.65,
+            "impact_degree": 0.45
+        },
+        "repairs": {
+            "repair_advice": "在返回 -1 之前，应当明确识别并指示输入错误的类型，建议使用日志记录或返回更具描述性的错误码。",
+            "repair_patch": "- return -1;\n+ log_error(\"Invalid relocation type: %d\", reloc_type);\n+ return INVALID_RELOC_TYPE;",
+            "repair_code": "ST_FUNC int gotplt_entry_type (int reloc_type) {\n    switch (reloc_type) {\n        case R_ARM_NONE:\n        case R_ARM_COPY:\n        case R_ARM_GLOB_DAT:\n        case R_ARM_JUMP_SLOT:\n            return NO_GOTPLT_ENTRY;\n\n        case R_ARM_PC24:\n        case R_ARM_CALL:\n        case R_ARM_JUMP24:\n        case R_ARM_PLT32:\n        case R_ARM_THM_PC22:\n        case R_ARM_THM_JUMP24:\n        case R_ARM_MOVT_ABS:\n        case R_ARM_MOVW_ABS_NC:\n        case R_ARM_THM_MOVT_ABS:\n        case R_ARM_THM_MOVW_ABS_NC:\n        case R_ARM_PREL31:\n        case R_ARM_ABS32:\n        case R_ARM_REL32:\n        case R_ARM_V4BX:\n        case R_ARM_TARGET1:\n        case R_ARM_MOVT_PREL:\n        case R_ARM_MOVW_PREL_NC:\n            return AUTO_GOTPLT_ENTRY;\n\n        case R_ARM_GOTPC:\n        case R_ARM_GOTOFF:\n            return BUILD_GOT_ONLY;\n\n        case R_ARM_GOT32:\n        case R_ARM_GOT_PREL:\n            return ALWAYS_GOTPLT_ENTRY;\n    }\n    log_error(\"Invalid relocation type: %d\", reloc_type);\n    return INVALID_RELOC_TYPE;\n}"
+        }
+    },
+    {
+        "function_id": "arm-link.c::create_plt_entry",
+        "caller": [],
+        "callee": [],
+        "function_content": "ST_FUNC unsigned create_plt_entry(TCCState *s1, unsigned got_offset, struct sym_attr *attr)\r\n{\r\n    Section *plt = s1->plt;\r\n    uint8_t *p;\r\n    unsigned plt_offset;\r\n\r\n    /* when building a DLL, GOT entry accesses must be done relative to\r\n       start of GOT (see x86_64 example above)  */\r\n\r\n    /* empty PLT: create PLT0 entry that push address of call site and\r\n       jump to ld.so resolution routine (GOT + 8) */\r\n    if (plt->data_offset == 0) {\r\n        p = section_ptr_add(plt, 20);\r\n        write32le(p,    0xe52de004); /* push {lr}         */\r\n        write32le(p+4,  0xe59fe004); /* ldr lr, [pc, #4] */\r\n        write32le(p+8,  0xe08fe00e); /* add lr, pc, lr    */\r\n        write32le(p+12, 0xe5bef008); /* ldr pc, [lr, #8]! */\r\n        /* p+16 is set in relocate_plt */\r\n    }\r\n    plt_offset = plt->data_offset;\r\n\r\n    if (attr->plt_thumb_stub) {\r\n        p = section_ptr_add(plt, 4);\r\n        write32le(p,   0x4778); /* bx pc */\r\n        write32le(p+2, 0x46c0); /* nop   */\r\n    }\r\n    p = section_ptr_add(plt, 16);\r\n    /* save GOT offset for relocate_plt */\r\n    write32le(p + 4, got_offset);\r\n    return plt_offset;\r\n}",
+        "function_name": "create_plt_entry",
+        "file_path": "arm-link.c",
+        "language": "c",
+        "caller_num": 0,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-121",
+                "description": "该函数可能存在整数溢出，如果 plt->data_offset 超过预期范围，将导致未定义行为。",
+                "defect_index": 0.8,
+                "repair_rate": 0.7,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.1,
+                "CWE_id": "CWE-416",
+                "description": "指针运算可能导致使用后释放的错误，必须小心处理指针的增加和引用。",
+                "defect_index": 0.65,
+                "repair_rate": 0.75,
+                "impact_degree": 0.4
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.7333333333333334,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.2,
+            "CWE_id": "CWE-121",
+            "description": "该函数可能存在整数溢出，如果 plt->data_offset 超过预期范围，将导致未定义行为。",
+            "defect_index": 0.8,
+            "repair_rate": 0.7,
+            "impact_degree": 0.5
+        },
+        "repairs": {
+            "repair_advice": "在使用 plt->data_offset 进行偏移计算之前，应该检查其值是否在有效范围内，以避免潜在的整数溢出问题。在此检查中，如果超出预期范围，应返回错误或进行适当处理。",
+            "repair_patch": "- plt_offset = plt->data_offset;\n+ if (plt->data_offset > MAX_PLT_OFFSET) {\n+     return ERROR_CODE; // 定义适当的错误代码\n+ }\n+ plt_offset = plt->data_offset;",
+            "repair_code": "ST_FUNC unsigned create_plt_entry(TCCState *s1, unsigned got_offset, struct sym_attr *attr)\n{\n    Section *plt = s1->plt;\n    uint8_t *p;\n    unsigned plt_offset;\n\n    // Verify data_offset not exceeds max expected limit\n    if (plt->data_offset > MAX_PLT_OFFSET) {\n        return ERROR_CODE; // Define an appropriate error code\n    }\n\n    if (plt->data_offset == 0) {\n        p = section_ptr_add(plt, 20);\n        write32le(p,    0xe52de004);\n        write32le(p+4,  0xe59fe004);\n        write32le(p+8,  0xe08fe00e);\n        write32le(p+12, 0xe5bef008);\n    }\n    plt_offset = plt->data_offset;\n\n    if (attr->plt_thumb_stub) {\n        p = section_ptr_add(plt, 4);\n        write32le(p,   0x4778);\n        write32le(p+2, 0x46c0);\n    }\n    p = section_ptr_add(plt, 16);\n    write32le(p + 4, got_offset);\n    return plt_offset;\n}"
+        }
+    },
+    {
+        "function_id": "arm-link.c::relocate_plt",
+        "caller": [],
+        "callee": [],
+        "function_content": "ST_FUNC void relocate_plt(TCCState *s1)\r\n{\r\n    uint8_t *p, *p_end;\r\n\r\n    if (!s1->plt)\r\n      return;\r\n\r\n    p = s1->plt->data;\r\n    p_end = p + s1->plt->data_offset;\r\n\r\n    if (p < p_end) {\r\n        int x = s1->got->sh_addr - s1->plt->sh_addr - 12;\r\n        write32le(s1->plt->data + 16, x - 4);\r\n        p += 20;\r\n        while (p < p_end) {\r\n\t    unsigned off = x  + read32le(p + 4) + (s1->plt->data - p) + 4;\r\n            if (read32le(p) == 0x46c04778) /* PLT Thumb stub present */\r\n                p += 4;\r\n            write32le(p, 0xe28fc200 | ((off >> 28) & 0xf));      // add ip, pc, #0xN0000000\r\n            write32le(p + 4, 0xe28cc600 | ((off >> 20) & 0xff)); // add ip, pc, #0xNN00000\r\n            write32le(p + 8, 0xe28cca00 | ((off >> 12) & 0xff)); // add ip, ip, #0xNN000\r\n            write32le(p + 12, 0xe5bcf000 | (off & 0xfff));\t // ldr pc, [ip, #0xNNN]!\r\n            p += 16;\r\n        }\r\n    }\r\n\r\n    if (s1->plt->reloc) {\r\n        ElfW_Rel *rel;\r\n        p = s1->got->data;\r\n        for_each_elem(s1->plt->reloc, 0, rel, ElfW_Rel) {\r\n            write32le(p + rel->r_offset, s1->plt->sh_addr);\r\n\t}\r\n    }\r\n}",
+        "function_name": "relocate_plt",
+        "file_path": "arm-link.c",
+        "language": "c",
+        "caller_num": 0,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.3,
+                "CWE_id": "CWE-123",
+                "description": "在读取和写入操作中可能有整数溢出，特别是在计算 `off` 的过程中，如果 `s1->plt->data` 指针与其大小的关系不正确，则可能会导致溢出。",
+                "defect_index": 0.75,
+                "repair_rate": 0.7,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-20",
+                "description": "输入验证不足，如果 `s1->plt->data` 和 `s1->got->data` 的指针是由外部输入提供的，可能导致未初始化内存读取或非法访问。",
+                "defect_index": 0.65,
+                "repair_rate": 0.8,
+                "impact_degree": 0.55
+            },
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-190",
+                "description": "由于复杂的算术运算，可能导致算术溢出，尤其是在涉及位移和加法时，若不进行范围检查，将导致意外行为。",
+                "defect_index": 0.6,
+                "repair_rate": 0.75,
+                "impact_degree": 0.5
+            }
+        ],
+        "defect_num": 5,
+        "avg_defect_index": 0.5700000000000001,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.3,
+            "CWE_id": "CWE-123",
+            "description": "在读取和写入操作中可能有整数溢出，特别是在计算 `off` 的过程中，如果 `s1->plt->data` 指针与其大小的关系不正确，则可能会导致溢出。",
+            "defect_index": 0.75,
+            "repair_rate": 0.7,
+            "impact_degree": 0.5
+        },
+        "repairs": {
+            "repair_advice": "在计算 off 之前，添加必要的检查，以确保不会出现整数溢出。具体来说，应检查 s1->plt->data_offset 和 s1->plt->data 是否有效，且在进行指针算术运算时确保不会超出有效范围。",
+            "repair_patch": "- unsigned off = x  + read32le(p + 4) + (s1->plt->data - p) + 4;\n+ if ((s1->plt->data + s1->plt->data_offset) < p) return;\n+ if (read32le(p + 4) > UINT32_MAX - x - (s1->plt->data - p) - 4) return;\n+ unsigned off = x + read32le(p + 4) + (s1->plt->data - p) + 4;",
+            "repair_code": "ST_FUNC void relocate_plt(TCCState *s1)\n{\n    uint8_t *p, *p_end;\n\n    if (!s1->plt)\n      return;\n\n    p = s1->plt->data;\n    p_end = p + s1->plt->data_offset;\n\n    if (p < p_end) {\n        int x = s1->got->sh_addr - s1->plt->sh_addr - 12;\n        write32le(s1->plt->data + 16, x - 4);\n        p += 20;\n        while (p < p_end) {\n            if ((s1->plt->data + s1->plt->data_offset) < p) return;\n            if (read32le(p + 4) > UINT32_MAX - x - (s1->plt->data - p) - 4) return;\n            unsigned off = x + read32le(p + 4) + (s1->plt->data - p) + 4;\n            if (read32le(p) == 0x46c04778) /* PLT Thumb stub present */\n                p += 4;\n            write32le(p, 0xe28fc200 | ((off >> 28) & 0xf));      // add ip, pc, #0xN0000000\n            write32le(p + 4, 0xe28cc600 | ((off >> 20) & 0xff)); // add ip, pc, #0xNN00000\n            write32le(p + 8, 0xe28cca00 | ((off >> 12) & 0xff)); // add ip, ip, #0xNN000\n            write32le(p + 12, 0xe5bcf000 | (off & 0xfff));    // ldr pc, [ip, #0xNNN]!\n            p += 16;\n        }\n    }\n\n    if (s1->plt->reloc) {\n        ElfW_Rel *rel;\n        p = s1->got->data;\n        for_each_elem(s1->plt->reloc, 0, rel, ElfW_Rel) {\n            write32le(p + rel->r_offset, s1->plt->sh_addr);\n        }\n    }\n}"
+        }
+    },
+    {
+        "function_id": "arm-link.c::relocate",
+        "caller": [],
+        "callee": [
+            "tccelf.c::put_elf_sym",
+            "tccelf.c::put_elf_reloc"
+        ],
+        "function_content": "ST_FUNC void relocate(TCCState *s1, ElfW_Rel *rel, int type, unsigned char *ptr, addr_t addr, addr_t val)\r\n{\r\n    ElfW(Sym) *sym;\r\n    int sym_index, esym_index;\r\n\r\n    sym_index = ELFW(R_SYM)(rel->r_info);\r\n    sym = &((ElfW(Sym) *)symtab_section->data)[sym_index];\r\n\r\n    switch(type) {\r\n        case R_ARM_PC24:\r\n        case R_ARM_CALL:\r\n        case R_ARM_JUMP24:\r\n        case R_ARM_PLT32:\r\n            {\r\n                int x, is_thumb, is_call, h, blx_avail, is_bl, th_ko;\r\n                x = (*(int *) ptr) & 0xffffff;\r\n#ifdef DEBUG_RELOC\r\n\t\tprintf (\"reloc %d: x=0x%x val=0x%x \", type, x, val);\r\n#endif\r\n                (*(int *)ptr) &= 0xff000000;\r\n                if (x & 0x800000)\r\n                    x -= 0x1000000;\r\n                x <<= 2;\r\n                blx_avail = (TCC_CPU_VERSION >= 5);\r\n                is_thumb = val & 1;\r\n                is_bl = (*(unsigned *) ptr) >> 24 == 0xeb;\r\n                is_call = (type == R_ARM_CALL || (type == R_ARM_PC24 && is_bl));\r\n                x += val - addr;\r\n#ifdef DEBUG_RELOC\r\n\t\tprintf (\" newx=0x%x name=%s\\n\", x,\r\n\t\t\t(char *) symtab_section->link->data + sym->st_name);\r\n#endif\r\n                h = x & 2;\r\n                th_ko = (x & 3) && (!blx_avail || !is_call);\r\n                if (th_ko || x >= 0x2000000 || x < -0x2000000)\r\n                    tcc_error_noabort(\"can't relocate value at %x,%d\",addr, type);\r\n                x >>= 2;\r\n                x &= 0xffffff;\r\n                /* Only reached if blx is avail and it is a call */\r\n                if (is_thumb) {\r\n                    x |= h << 24;\r\n                    (*(int *)ptr) = 0xfa << 24; /* bl -> blx */\r\n                }\r\n                (*(int *) ptr) |= x;\r\n            }\r\n            return;\r\n        /* Since these relocations only concern Thumb-2 and blx instruction was\r\n           introduced before Thumb-2, we can assume blx is available and not\r\n           guard its use */\r\n        case R_ARM_THM_PC22:\r\n        case R_ARM_THM_JUMP24:\r\n            {\r\n                int x, hi, lo, s, j1, j2, i1, i2, imm10, imm11;\r\n                int to_thumb, is_call, to_plt, blx_bit = 1 << 12;\r\n                Section *plt;\r\n\r\n                /* weak reference */\r\n                if (sym->st_shndx == SHN_UNDEF &&\r\n                    ELFW(ST_BIND)(sym->st_info) == STB_WEAK)\r\n                    return;\r\n\r\n                /* Get initial offset */\r\n                hi = (*(uint16_t *)ptr);\r\n                lo = (*(uint16_t *)(ptr+2));\r\n                s = (hi >> 10) & 1;\r\n                j1 = (lo >> 13) & 1;\r\n                j2 = (lo >> 11) & 1;\r\n                i1 = (j1 ^ s) ^ 1;\r\n                i2 = (j2 ^ s) ^ 1;\r\n                imm10 = hi & 0x3ff;\r\n                imm11 = lo & 0x7ff;\r\n                x = (s << 24) | (i1 << 23) | (i2 << 22) |\r\n                    (imm10 << 12) | (imm11 << 1);\r\n                if (x & 0x01000000)\r\n                    x -= 0x02000000;\r\n\r\n                /* Relocation infos */\r\n                to_thumb = val & 1;\r\n                plt = s1->plt;\r\n                to_plt = (val >= plt->sh_addr) &&\r\n                         (val < plt->sh_addr + plt->data_offset);\r\n                is_call = (type == R_ARM_THM_PC22);\r\n\r\n                if (!to_thumb && !to_plt && !is_call) {\r\n                    int index;\r\n                    uint8_t *p;\r\n                    char *name, buf[1024];\r\n                    Section *text;\r\n\r\n                    name = (char *) symtab_section->link->data + sym->st_name;\r\n                    text = s1->sections[sym->st_shndx];\r\n                    /* Modify reloc to target a thumb stub to switch to ARM */\r\n                    snprintf(buf, sizeof(buf), \"%s_from_thumb\", name);\r\n                    index = put_elf_sym(symtab_section,\r\n                                        text->data_offset + 1,\r\n                                        sym->st_size, sym->st_info, 0,\r\n                                        sym->st_shndx, buf);\r\n                    to_thumb = 1;\r\n                    val = text->data_offset + 1;\r\n                    rel->r_info = ELFW(R_INFO)(index, type);\r\n                    /* Create a thumb stub function to switch to ARM mode */\r\n                    put_elf_reloc(symtab_section, text,\r\n                                  text->data_offset + 4, R_ARM_JUMP24,\r\n                                  sym_index);\r\n                    p = section_ptr_add(text, 8);\r\n                    write32le(p,   0x4778); /* bx pc */\r\n                    write32le(p+2, 0x46c0); /* nop   */\r\n                    write32le(p+4, 0xeafffffe); /* b $sym */\r\n                }\r\n\r\n                /* Compute final offset */\r\n                x += val - addr;\r\n                if (!to_thumb && is_call) {\r\n                    blx_bit = 0; /* bl -> blx */\r\n                    x = (x + 3) & -4; /* Compute offset from aligned PC */\r\n                }\r\n\r\n                /* Check that relocation is possible\r\n                   * offset must not be out of range\r\n                   * if target is to be entered in arm mode:\r\n                     - bit 1 must not set\r\n                     - instruction must be a call (bl) or a jump to PLT */\r\n                if (!to_thumb || x >= 0x1000000 || x < -0x1000000)\r\n                    if (to_thumb || (val & 2) || (!is_call && !to_plt))\r\n                        tcc_error_noabort(\"can't relocate value at %x,%d\",addr, type);\r\n\r\n                /* Compute and store final offset */\r\n                s = (x >> 24) & 1;\r\n                i1 = (x >> 23) & 1;\r\n                i2 = (x >> 22) & 1;\r\n                j1 = s ^ (i1 ^ 1);\r\n                j2 = s ^ (i2 ^ 1);\r\n                imm10 = (x >> 12) & 0x3ff;\r\n                imm11 = (x >> 1) & 0x7ff;\r\n                (*(uint16_t *)ptr) = (uint16_t) ((hi & 0xf800) |\r\n                                     (s << 10) | imm10);\r\n                (*(uint16_t *)(ptr+2)) = (uint16_t) ((lo & 0xc000) |\r\n                                (j1 << 13) | blx_bit | (j2 << 11) |\r\n                                imm11);\r\n            }\r\n            return;\r\n        case R_ARM_MOVT_ABS:\r\n        case R_ARM_MOVW_ABS_NC:\r\n            {\r\n                int x, imm4, imm12;\r\n                if (type == R_ARM_MOVT_ABS)\r\n                    val >>= 16;\r\n                imm12 = val & 0xfff;\r\n                imm4 = (val >> 12) & 0xf;\r\n                x = (imm4 << 16) | imm12;\r\n                if (type == R_ARM_THM_MOVT_ABS)\r\n                    *(int *)ptr |= x;\r\n                else\r\n                    *(int *)ptr += x;\r\n            }\r\n            return;\r\n        case R_ARM_MOVT_PREL:\r\n        case R_ARM_MOVW_PREL_NC:\r\n            {\r\n\t\tint insn = *(int *)ptr;\r\n                int addend = ((insn >> 4) & 0xf000) | (insn & 0xfff);\r\n\r\n\t\taddend = (addend ^ 0x8000) - 0x8000;\r\n\t\tval += addend - addr;\r\n\t\tif (type == R_ARM_MOVT_PREL)\r\n\t\t    val >>= 16;\r\n\t\t*(int *)ptr = (insn & 0xfff0f000) |\r\n\t\t\t      ((val & 0xf000) << 4) | (val & 0xfff);\r\n            }\r\n            return;\r\n        case R_ARM_THM_MOVT_ABS:\r\n        case R_ARM_THM_MOVW_ABS_NC:\r\n            {\r\n                int x, i, imm4, imm3, imm8;\r\n                if (type == R_ARM_THM_MOVT_ABS)\r\n                    val >>= 16;\r\n                imm8 = val & 0xff;\r\n                imm3 = (val >> 8) & 0x7;\r\n                i = (val >> 11) & 1;\r\n                imm4 = (val >> 12) & 0xf;\r\n                x = (imm3 << 28) | (imm8 << 16) | (i << 10) | imm4;\r\n                if (type == R_ARM_THM_MOVT_ABS)\r\n                    *(int *)ptr |= x;\r\n                else\r\n                    *(int *)ptr += x;\r\n            }\r\n            return;\r\n        case R_ARM_PREL31:\r\n            {\r\n                int x;\r\n                x = (*(int *)ptr) & 0x7fffffff;\r\n                (*(int *)ptr) &= 0x80000000;\r\n                x = (x * 2) / 2;\r\n                x += val - addr;\r\n                if((x^(x>>1))&0x40000000)\r\n                    tcc_error_noabort(\"can't relocate value at %x,%d\",addr, type);\r\n                (*(int *)ptr) |= x & 0x7fffffff;\r\n            }\r\n            return;\r\n        case R_ARM_ABS32:\r\n        case R_ARM_TARGET1:\r\n            if (s1->output_type & TCC_OUTPUT_DYN) {\r\n                esym_index = get_sym_attr(s1, sym_index, 0)->dyn_index;\r\n                qrel->r_offset = rel->r_offset;\r\n                if (esym_index) {\r\n                    qrel->r_info = ELFW(R_INFO)(esym_index, R_ARM_ABS32);\r\n                    qrel++;\r\n                    return;\r\n                } else {\r\n                    qrel->r_info = ELFW(R_INFO)(0, R_ARM_RELATIVE);\r\n                    qrel++;\r\n                }\r\n            }\r\n            *(int *)ptr += val;\r\n            return;\r\n        case R_ARM_REL32:\r\n            *(int *)ptr += val - addr;\r\n            return;\r\n        case R_ARM_GOTPC:\r\n            *(int *)ptr += s1->got->sh_addr - addr;\r\n            return;\r\n        case R_ARM_GOTOFF:\r\n            *(int *)ptr += val - s1->got->sh_addr;\r\n            return;\r\n        case R_ARM_GOT32:\r\n            /* we load the got offset */\r\n            *(int *)ptr += get_sym_attr(s1, sym_index, 0)->got_offset;\r\n            return;\r\n\tcase R_ARM_GOT_PREL:\r\n            /* we load the pc relative got offset */\r\n            *(int *)ptr += s1->got->sh_addr +\r\n\t\t\t   get_sym_attr(s1, sym_index, 0)->got_offset -\r\n\t\t\t   addr;\r\n            return;\r\n        case R_ARM_COPY:\r\n            return;\r\n        case R_ARM_V4BX:\r\n            /* trade Thumb support for ARMv4 support */\r\n            if ((0x0ffffff0 & *(int*)ptr) == 0x012FFF10)\r\n                *(int*)ptr ^= 0xE12FFF10 ^ 0xE1A0F000; /* BX Rm -> MOV PC, Rm */\r\n            return;\r\n        case R_ARM_GLOB_DAT:\r\n        case R_ARM_JUMP_SLOT:\r\n            *(addr_t *)ptr = val;\r\n            return;\r\n        case R_ARM_NONE:\r\n            /* Nothing to do.  Normally used to indicate a dependency\r\n               on a certain symbol (like for exception handling under EABI).  */\r\n            return;\r\n        case R_ARM_RELATIVE:\r\n#ifdef TCC_TARGET_PE\r\n            add32le(ptr, val - s1->pe_imagebase);\r\n#endif\r\n            /* do nothing */\r\n            return;\r\n        default:\r\n            fprintf(stderr,\"FIXME: handle reloc type %d at %x [%p] to %x\\n\",\r\n                type, (unsigned)addr, ptr, (unsigned)val);\r\n            return;\r\n    }\r\n}",
+        "function_name": "relocate",
+        "file_path": "arm-link.c",
+        "language": "c",
+        "caller_num": 0,
+        "callee_num": 2,
+        "defects": [
+            {
+                "defect_rate": 0.35,
+                "CWE_id": "CWE-190",
+                "description": "在计算整型偏移时，可能发生整型溢出，导致未定义行为。",
+                "defect_index": 0.8,
+                "repair_rate": 0.65,
+                "impact_degree": 0.65
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-680",
+                "description": "该函数使用的不安全的类型转换可能导致数据损坏或异常行为。",
+                "defect_index": 0.6,
+                "repair_rate": 0.85,
+                "impact_degree": 0.55
+            },
+            {
+                "defect_rate": 0.3,
+                "CWE_id": "CWE-704",
+                "description": "存在未检查的NULL指针引用，特别是在处理符号表(section)时。",
+                "defect_index": 0.75,
+                "repair_rate": 0.7,
+                "impact_degree": 0.6
+            },
+            {
+                "defect_rate": 0.4,
+                "CWE_id": "CWE-134",
+                "description": "打印函数使用不安全，可能导致格式字符串漏洞，泄露内存信息或崩溃。",
+                "defect_index": 0.9,
+                "repair_rate": 0.5,
+                "impact_degree": 0.8
+            }
+        ],
+        "defect_num": 5,
+        "avg_defect_index": 0.78,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.4,
+            "CWE_id": "CWE-134",
+            "description": "打印函数使用不安全，可能导致格式字符串漏洞，泄露内存信息或崩溃。",
+            "defect_index": 0.9,
+            "repair_rate": 0.5,
+            "impact_degree": 0.8
+        },
+        "repairs": {
+            "repair_advice": "在使用 printf 等函数时，应使用格式控制字符串以确保安全，避免格式字符串漏洞。使用至少一个格式说明符，并将相应的参数传递给 printf。",
+            "repair_patch": "- printf (\" newx=0x%x name=%s\\n\", x,\n+ printf (\" newx=0x%x name=%s\\n\", x, (char *) symtab_section->link->data + sym->st_name);\n- printf (\"reloc %d: x=0x%x val=0x%x \", type, x, val);\n+ printf (\"reloc %d: x=0x%x val=0x%x \", type, x, val);",
+            "repair_code": "ST_FUNC void relocate(TCCState *s1, ElfW_Rel *rel, int type, unsigned char *ptr, addr_t addr, addr_t val)\n{\n    ElfW(Sym) *sym;\n    int sym_index, esym_index;\n\n    sym_index = ELFW(R_SYM)(rel->r_info);\n    sym = &((ElfW(Sym) *)symtab_section->data)[sym_index];\n\n    switch(type) {\n        case R_ARM_PC24:\n        case R_ARM_CALL:\n        case R_ARM_JUMP24:\n        case R_ARM_PLT32:\n            {\n                int x, is_thumb, is_call, h, blx_avail, is_bl, th_ko;\n                x = (*(int *) ptr) & 0xffffff;\n#ifdef DEBUG_RELOC\n                printf (\"reloc %d: x=0x%x val=0x%x \", type, x, val);\n#endif\n                (*(int *)ptr) &= 0xff000000;\n                if (x & 0x800000)\n                    x -= 0x1000000;\n                x <<= 2;\n                blx_avail = (TCC_CPU_VERSION >= 5);\n                is_thumb = val & 1;\n                is_bl = (*(unsigned *) ptr) >> 24 == 0xeb;\n                is_call = (type == R_ARM_CALL || (type == R_ARM_PC24 && is_bl));\n                x += val - addr;\n#ifdef DEBUG_RELOC\n                printf (\" newx=0x%x name=%s\\n\", x, (char *) symtab_section->link->data + sym->st_name);\n#endif\n                h = x & 2;\n                th_ko = (x & 3) && (!blx_avail || !is_call);\n                if (th_ko || x >= 0x2000000 || x < -0x2000000)\n                    tcc_error_noabort(\"can't relocate value at %x,%d\",addr, type);\n                x >>= 2;\n                x &= 0xffffff;\n                /* Only reached if blx is avail and it is a call */\n                if (is_thumb) {\n                    x |= h << 24;\n                    (*(int *)ptr) = 0xfa << 24; /* bl -> blx */\n                }\n                (*(int *) ptr) |= x;\n            }\n            return;\n        /* Since these relocations only concern Thumb-2 and blx instruction was\n           introduced before Thumb-2, we can assume blx is available and not\n           guard its use */\n        case R_ARM_THM_PC22:\n        case R_ARM_THM_JUMP24:\n            {\n                // ... 其他案例保持不变\n            }\n            return;\n        // ... 其他代码保持不变\n    }\n}"
+        }
+    },
+    {
+        "function_id": "arm64-asm.c::asm_error",
+        "caller": [
+            "arm64-asm.c::subst_asm_operand",
+            "arm64-asm.c::asm_parse_regvar",
+            "arm64-asm.c::asm_opcode",
+            "arm64-asm.c::asm_clobber"
+        ],
+        "callee": [],
+        "function_content": "static void asm_error(void)\r\n{\r\n    tcc_error(\"ARM asm not implemented.\");\r\n}",
+        "function_name": "asm_error",
+        "file_path": "arm64-asm.c",
+        "language": "c",
+        "caller_num": 4,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-561",
+                "description": "该函数的错误处理可能缺乏详细信息，可能导致调试困难。",
+                "defect_index": 0.45,
+                "repair_rate": 0.85,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.3,
+                "CWE_id": "CWE-204",
+                "description": "缺少对错误情况的更具体处理，可能导致未处理的异常情况。",
+                "defect_index": 0.7,
+                "repair_rate": 0.6,
+                "impact_degree": 0.65
+            },
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-575",
+                "description": "错误信息未涵盖不同类型的错误，可能影响用户的理解。",
+                "defect_index": 0.5,
+                "repair_rate": 0.75,
+                "impact_degree": 0.55
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.5499999999999999,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.3,
+            "CWE_id": "CWE-204",
+            "description": "缺少对错误情况的更具体处理，可能导致未处理的异常情况。",
+            "defect_index": 0.7,
+            "repair_rate": 0.6,
+            "impact_degree": 0.65
+        },
+        "repairs": {
+            "repair_advice": "在输出错误信息之前，应该添加对错误情况的更具体处理，例如日志记录或返回特定错误代码，以便后续可以进行相应的异常处理。",
+            "repair_patch": "- tcc_error(\"ARM asm not implemented.\");\n+ log_error(\"ARM asm not implemented.\");\n+ return; // 添加处理逻辑以避免未处理异常",
+            "repair_code": "static void asm_error(void)\n{\n    log_error(\"ARM asm not implemented.\");\n    return; // 添加处理逻辑以避免未处理异常\n}"
+        }
+    },
+    {
+        "function_id": "arm64-asm.c::g",
+        "caller": [
+            "i386-asm.c::asm_rex",
+            "arm64-asm.c::gen_le16",
+            "i386-asm.c::asm_opcode",
+            "i386-asm.c::asm_modrm",
+            "i386-asm.c::asm_gen_code"
+        ],
+        "callee": [
+            "tccelf.c::section_realloc"
+        ],
+        "function_content": "ST_FUNC void g(int c)\r\n{\r\n    int ind1;\r\n    if (nocode_wanted)\r\n        return;\r\n    ind1 = ind + 1;\r\n    if (ind1 > cur_text_section->data_allocated)\r\n        section_realloc(cur_text_section, ind1);\r\n    cur_text_section->data[ind] = c;\r\n    ind = ind1;\r\n}",
+        "function_name": "g",
+        "file_path": "arm64-asm.c",
+        "language": "c",
+        "caller_num": 5,
+        "callee_num": 1,
+        "defects": [
+            {
+                "defect_rate": 0.45,
+                "CWE_id": "CWE-119",
+                "description": "函数存在缓冲区溢出风险，因为在访问 cur_text_section->data 时，没有对 ind 的值进行范围检查。",
+                "defect_index": 0.85,
+                "repair_rate": 0.75,
+                "impact_degree": 0.7
+            },
+            {
+                "defect_rate": 0.35,
+                "CWE_id": "CWE-401",
+                "description": "可能存在内存泄漏，特别是在 section_realloc() 调用后没有验证内存分配成功与否。",
+                "defect_index": 0.65,
+                "repair_rate": 0.8,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.3,
+                "CWE_id": "CWE-130",
+                "description": "存在整数溢出风险，ind1 的计算未对 ind 进行限制，可能导致 ind1 超过 data_allocated 的大小。",
+                "defect_index": 0.7,
+                "repair_rate": 0.7,
+                "impact_degree": 0.6
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.7333333333333334,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.45,
+            "CWE_id": "CWE-119",
+            "description": "函数存在缓冲区溢出风险，因为在访问 cur_text_section->data 时，没有对 ind 的值进行范围检查。",
+            "defect_index": 0.85,
+            "repair_rate": 0.75,
+            "impact_degree": 0.7
+        },
+        "repairs": {
+            "repair_advice": "在访问 cur_text_section->data 之前，应该对 ind 进行范围检查，以确保其值不超过 data_allocated 的范围，从而避免缓冲区溢出。",
+            "repair_patch": "- cur_text_section->data[ind] = c;\n+ if (ind < cur_text_section->data_allocated) {\n+     cur_text_section->data[ind] = c;\n+ } else {\n+     // 处理越界的情况，比如记录错误或增长缓冲区\n+     // 此处可根据实际情况决定是扩展仍是报错\n+     fprintf(stderr, \"Index out of bounds: %d\\n\", ind);\n+ }",
+            "repair_code": "ST_FUNC void g(int c)\n{\n    int ind1;\n    if (nocode_wanted)\n        return;\n    ind1 = ind + 1;\n    if (ind1 > cur_text_section->data_allocated)\n        section_realloc(cur_text_section, ind1);\n    if (ind < cur_text_section->data_allocated) {\n        cur_text_section->data[ind] = c;\n    } else {\n        // 处理越界的情况，比如记录错误或增长缓冲区\n        fprintf(stderr, \"Index out of bounds: %d\\n\", ind);\n    }\n    ind = ind1;\n}"
+        }
+    },
+    {
+        "function_id": "arm64-asm.c::gen_le16",
+        "caller": [
+            "i386-asm.c::asm_opcode",
+            "arm64-asm.c::gen_le32"
+        ],
+        "callee": [
+            "arm64-asm.c::g"
+        ],
+        "function_content": "ST_FUNC void gen_le16 (int i)\r\n{\r\n    g(i);\r\n    g(i>>8);\r\n}",
+        "function_name": "gen_le16",
+        "file_path": "arm64-asm.c",
+        "language": "c",
+        "caller_num": 2,
+        "callee_num": 1,
+        "defects": [
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-119",
+                "description": "存在缓冲区溢出风险，函数g未显示给出，参数i可能导致未预期的访问",
+                "defect_index": 0.65,
+                "repair_rate": 0.85,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-191",
+                "description": "函数g可能会导致整数溢出，特别是对于大的输入值",
+                "defect_index": 0.7,
+                "repair_rate": 0.7,
+                "impact_degree": 0.4
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.675,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.2,
+            "CWE_id": "CWE-119",
+            "description": "存在缓冲区溢出风险，函数g未显示给出，参数i可能导致未预期的访问",
+            "defect_index": 0.65,
+            "repair_rate": 0.85,
+            "impact_degree": 0.5
+        },
+        "repairs": {
+            "repair_advice": "在调用g(i)和g(i>>8)之前，应该添加对参数i的边界值检查，以防止缓冲区溢出并确保i的值在有效范围内。",
+            "repair_patch": "- g(i);\n- g(i>>8);\n+ if (i >= 0 && i < MAX_VALUE) {\n+     g(i);\n+     g(i >> 8);\n+ } else {\n+     handle_error();\n+ }",
+            "repair_code": "ST_FUNC void gen_le16 (int i) {\n    if (i >= 0 && i < MAX_VALUE) {\n        g(i);\n        g(i >> 8);\n    } else {\n        handle_error();\n    }\n}"
+        }
+    },
+    {
+        "function_id": "arm64-asm.c::gen_le32",
+        "caller": [
+            "i386-asm.c::gen_disp32",
+            "arm64-asm.c::gen_expr32"
+        ],
+        "callee": [
+            "arm64-asm.c::gen_le16"
+        ],
+        "function_content": "ST_FUNC void gen_le32 (int i)\r\n{\r\n    gen_le16(i);\r\n    gen_le16(i>>16);\r\n}",
+        "function_name": "gen_le32",
+        "file_path": "arm64-asm.c",
+        "language": "c",
+        "caller_num": 2,
+        "callee_num": 1,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-119",
+                "description": "可能存在整数溢出漏洞，特别是在处理大值时可能导致不正确的结果。",
+                "defect_index": 0.35,
+                "repair_rate": 0.85,
+                "impact_degree": 0.4
+            },
+            {
+                "defect_rate": 0.1,
+                "CWE_id": "CWE-121",
+                "description": "可能存在缓冲区溢出漏洞，假设 gen_le16 函数内部实现处理不当。",
+                "defect_index": 0.75,
+                "repair_rate": 0.6,
+                "impact_degree": 0.5
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.55,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.15,
+            "CWE_id": "CWE-119",
+            "description": "可能存在整数溢出漏洞，特别是在处理大值时可能导致不正确的结果。",
+            "defect_index": 0.35,
+            "repair_rate": 0.85,
+            "impact_degree": 0.4
+        },
+        "repairs": {
+            "repair_advice": "在执行位移操作之前，应该检查输入参数是否会导致溢出，特别是在处理较大的整数值时，以避免不期望的结果。可以通过限制输入值的范围或使用合适的数据类型来进行处理。",
+            "repair_patch": "- gen_le16(i);\n- gen_le16(i>>16);\n+ if (i >= 0 && i <= UINT32_MAX) {\n+     gen_le16(i);\n+     gen_le16(i>>16);\n+ } else {\n+     /* 处理溢出情况，例如返回错误或使用日志记录 */\n+ }",
+            "repair_code": "void gen_le32(int i) {\n    if (i >= 0 && i <= UINT32_MAX) {\n        gen_le16(i);\n        gen_le16(i >> 16);\n    } else {\n        /* 处理溢出情况，例如返回错误或使用日志记录 */\n    }\n}"
+        }
+    },
+    {
+        "function_id": "arm64-asm.c::gen_expr32",
+        "caller": [],
+        "callee": [
+            "arm64-asm.c::gen_le32"
+        ],
+        "function_content": "ST_FUNC void gen_expr32(ExprValue *pe)\r\n{\r\n    gen_le32(pe->v);\r\n}",
+        "function_name": "gen_expr32",
+        "file_path": "arm64-asm.c",
+        "language": "c",
+        "caller_num": 0,
+        "callee_num": 1,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-119",
+                "description": "该函数中的 gen_le32 函数可能在处理超出预期范围的输入时引发缓冲区溢出。",
+                "defect_index": 0.35,
+                "repair_rate": 0.85,
+                "impact_degree": 0.3
+            },
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-20",
+                "description": "函数未对 pe 参数的有效性进行检查，可能导致未定义行为或崩溃。",
+                "defect_index": 0.75,
+                "repair_rate": 0.7,
+                "impact_degree": 0.6
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.55,
+        "avg_defect_level": "中风险",
+        "main_defect": {
+            "defect_rate": 0.25,
+            "CWE_id": "CWE-20",
+            "description": "函数未对 pe 参数的有效性进行检查，可能导致未定义行为或崩溃。",
+            "defect_index": 0.75,
+            "repair_rate": 0.7,
+            "impact_degree": 0.6
+        },
+        "repairs": {
+            "repair_advice": "在调用 gen_le32 函数之前，应该检查 pe 参数是否为 NULL，并且确保 pe->v 的值在有效范围内，以避免未定义行为或崩溃。",
+            "repair_patch": "- gen_le32(pe->v);\n+ if (pe != NULL) {\n+     gen_le32(pe->v);\n+ } else {\n+     // 处理错误情况\n+ }",
+            "repair_code": "ST_FUNC void gen_expr32(ExprValue *pe) {\n    if (pe != NULL) {\n        gen_le32(pe->v);\n    } else {\n        // 处理错误情况\n    }\n}"
+        }
+    },
+    {
+        "function_id": "arm64-gen.c::intr",
+        "caller": [
+            "arm64-gen.c::store",
+            "arm64-gen.c::arm64_gen_opil",
+            "arm64-gen.c::gen_cvt_itof",
+            "arm64-gen.c::gen_vla_sp_save",
+            "arm64-gen.c::gen_va_start",
+            "arm64-gen.c::gen_clear_cache",
+            "arm64-gen.c::load",
+            "arm64-gen.c::gen_cvt_csti",
+            "arm64-gen.c::gen_opf",
+            "arm64-gen.c::gfunc_call",
+            "arm64-gen.c::gjmp_cond",
+            "arm64-gen.c::gen_vla_alloc",
+            "arm64-gen.c::gen_cvt_ftoi",
+            "arm64-gen.c::gen_increment_tcov",
+            "arm64-gen.c::arm64_gen_bl_or_b",
+            "arm64-gen.c::gen_va_arg",
+            "arm64-gen.c::gen_cvt_sxtw"
+        ],
+        "callee": [],
+        "function_content": "static uint32_t intr(int r)\r\n{\r\n    assert(TREG_R(0) <= r && r <= TREG_R30);\r\n    return r < TREG_R30 ? r : 30;\r\n}",
+        "function_name": "intr",
+        "file_path": "arm64-gen.c",
+        "language": "c",
+        "caller_num": 17,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-130",
+                "description": "函数的参数 'r' 没有进行充分的边界检查，可能导致不应有的行为。",
+                "defect_index": 0.45,
+                "repair_rate": 0.85,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.1,
+                "CWE_id": "CWE-758",
+                "description": "函数在调用 assert 时，可能因为编译优化或者发布版本未定义行为，导致断言被跳过。",
+                "defect_index": 0.65,
+                "repair_rate": 0.8,
+                "impact_degree": 0.4
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-120",
+                "description": "返回值的处理未考虑越界情形，可能导致未定义行为或程序崩溃。",
+                "defect_index": 0.75,
+                "repair_rate": 0.7,
+                "impact_degree": 0.6
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.6166666666666667,
+        "avg_defect_level": "中风险",
+        "main_defect": {
+            "defect_rate": 0.2,
+            "CWE_id": "CWE-120",
+            "description": "返回值的处理未考虑越界情形，可能导致未定义行为或程序崩溃。",
+            "defect_index": 0.75,
+            "repair_rate": 0.7,
+            "impact_degree": 0.6
+        },
+        "repairs": {
+            "repair_advice": "在返回值之前，应该验证输入参数 r 是否在有效边界内，以避免未定义行为或程序崩溃。",
+            "repair_patch": "- return r < TREG_R30 ? r : 30;\n+ if (r < TREG_R0 || r > TREG_R30) {\n+     return 0; // 或者根据需求返回错误码\n+ }\n+ return r < TREG_R30 ? r : 30;",
+            "repair_code": "static uint32_t intr(int r) {\n    assert(TREG_R(0) <= r && r <= TREG_R30);\n    if (r < TREG_R0 || r > TREG_R30) {\n        return 0; // 或者根据需求返回错误码\n    }\n    return r < TREG_R30 ? r : 30;\n}"
+        }
+    },
+    {
+        "function_id": "arm64-gen.c::fltr",
+        "caller": [
+            "arm64-gen.c::store",
+            "arm64-gen.c::gen_cvt_itof",
+            "arm64-gen.c::load",
+            "arm64-gen.c::gen_opf",
+            "arm64-gen.c::gfunc_call",
+            "arm64-gen.c::gjmp_cond",
+            "arm64-gen.c::gen_cvt_ftoi",
+            "arm64-gen.c::gen_cvt_ftof"
+        ],
+        "callee": [],
+        "function_content": "static uint32_t fltr(int r)\r\n{\r\n    assert(TREG_F(0) <= r && r <= TREG_F(7));\r\n    return r - TREG_F(0);\r\n}",
+        "function_name": "fltr",
+        "file_path": "arm64-gen.c",
+        "language": "c",
+        "caller_num": 8,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-476",
+                "description": "函数使用断言检查参数范围，但在非调试模式下，断言不会被验证，可能导致未定义行为。",
+                "defect_index": 0.4,
+                "repair_rate": 0.85,
+                "impact_degree": 0.3
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-122",
+                "description": "如果 TREG_F(0) 返回的值超过 r，可能导致负值返回，这可能在后续操作中造成逻辑错误。",
+                "defect_index": 0.7,
+                "repair_rate": 0.75,
+                "impact_degree": 0.5
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.55,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.2,
+            "CWE_id": "CWE-122",
+            "description": "如果 TREG_F(0) 返回的值超过 r，可能导致负值返回，这可能在后续操作中造成逻辑错误。",
+            "defect_index": 0.7,
+            "repair_rate": 0.75,
+            "impact_degree": 0.5
+        },
+        "repairs": {
+            "repair_advice": "在返回 r - TREG_F(0) 之前应确保 TREG_F(0) 不大于 r，以避免潜在的负值返回和逻辑错误。",
+            "repair_patch": "- return r - TREG_F(0);\n+ if (TREG_F(0) > r) {\n+     return 0; // 或者根据需求返回一个适当的值\n+ }\n+ return r - TREG_F(0);",
+            "repair_code": "static uint32_t fltr(int r) {\n    assert(TREG_F(0) <= r && r <= TREG_F(7));\n    if (TREG_F(0) > r) {\n        return 0; // 或者根据需求返回一个适当的值\n    }\n    return r - TREG_F(0);\n}"
+        }
+    },
+    {
+        "function_id": "arm64-gen.c::o",
+        "caller": [
+            "arm64-gen.c::gen_bounds_prolog",
+            "arm64-gen.c::arm64_gen_opil",
+            "arm64-gen.c::gen_cvt_itof",
+            "arm64-gen.c::gen_clear_cache",
+            "arm64-gen.c::arm64_sym",
+            "arm64-gen.c::arm64_ldrx",
+            "arm64-gen.c::gfunc_return",
+            "arm64-gen.c::arm64_movimm",
+            "arm64-gen.c::arm64_strx",
+            "arm64-gen.c::gjmp",
+            "arm64-gen.c::gfunc_epilog",
+            "arm64-gen.c::gen_increment_tcov",
+            "arm64-gen.c::arm64_gen_opic",
+            "arm64-gen.c::arm64_spoff",
+            "arm64-gen.c::gen_va_start",
+            "arm64-gen.c::gen_fill_nops",
+            "arm64-gen.c::gfunc_prolog",
+            "arm64-gen.c::arm64_ldrs",
+            "arm64-gen.c::arm64_strv",
+            "arm64-gen.c::load",
+            "arm64-gen.c::gen_opf",
+            "arm64-gen.c::gfunc_call",
+            "arm64-gen.c::gen_bounds_call",
+            "arm64-gen.c::gjmp_cond",
+            "arm64-gen.c::gen_vla_alloc",
+            "arm64-gen.c::arm64_gen_bl_or_b",
+            "arm64-gen.c::gen_bounds_epilog",
+            "arm64-gen.c::gen_vla_sp_save",
+            "arm64-gen.c::gen_cvt_csti",
+            "arm64-gen.c::gen_vla_sp_restore",
+            "arm64-gen.c::gjmp_addr",
+            "arm64-gen.c::gen_cvt_ftoi",
+            "arm64-gen.c::arm64_ldrv",
+            "arm64-gen.c::gen_va_arg",
+            "arm64-gen.c::gen_cvt_ftof",
+            "arm64-gen.c::gen_cvt_sxtw"
+        ],
+        "callee": [
+            "tccelf.c::section_realloc"
+        ],
+        "function_content": "ST_FUNC void o(unsigned int c)\r\n{\r\n    int ind1 = ind + 4;\r\n    if (nocode_wanted)\r\n        return;\r\n    if (ind1 > cur_text_section->data_allocated)\r\n        section_realloc(cur_text_section, ind1);\r\n    write32le(cur_text_section->data + ind, c);\r\n    ind = ind1;\r\n}",
+        "function_name": "o",
+        "file_path": "arm64-gen.c",
+        "language": "c",
+        "caller_num": 36,
+        "callee_num": 1,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-119",
+                "description": "在函数中写入数据可能导致缓冲区溢出，特别是在未正确检查指针有效性和数组边界的情况下。",
+                "defect_index": 0.45,
+                "repair_rate": 0.85,
+                "impact_degree": 0.65
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-401",
+                "description": "在 realloc 过程中，如果新分配的内存失败，原内存仍然存在，可能导致内存泄漏。",
+                "defect_index": 0.6,
+                "repair_rate": 0.7,
+                "impact_degree": 0.55
+            },
+            {
+                "defect_rate": 0.3,
+                "CWE_id": "CWE-825",
+                "description": "使用未初始化的变量可能导致未定义行为，尤其是对 'ind' 的使用。",
+                "defect_index": 0.5,
+                "repair_rate": 0.75,
+                "impact_degree": 0.48
+            },
+            {
+                "defect_rate": 0.1,
+                "CWE_id": "CWE-287",
+                "description": "访问控制缺失，可能导致流量不合法的情况发生，尤其在未验证 'nocode_wanted' 的情况下。",
+                "defect_index": 0.4,
+                "repair_rate": 0.95,
+                "impact_degree": 0.3
+            }
+        ],
+        "defect_num": 4,
+        "avg_defect_index": 0.48750000000000004,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.3,
+            "CWE_id": "CWE-825",
+            "description": "使用未初始化的变量可能导致未定义行为，尤其是对 'ind' 的使用。",
+            "defect_index": 0.5,
+            "repair_rate": 0.75,
+            "impact_degree": 0.48
+        },
+        "repairs": {
+            "repair_advice": "在使用变量 'ind' 之前，确保它已被适当地初始化，以防止使用未初始化的变量导致未定义行为。",
+            "repair_patch": "- int ind1 = ind + 4;\n+ int ind1 = (ind_initialized) ? ind + 4 : 0;\n+ if (!ind_initialized) {\n+     ind_initialized = 1; // 或者其它适当初始化代码\n+ }\n",
+            "repair_code": "ST_FUNC void o(unsigned int c) {\n    static int ind_initialized = 0;\n    if (!ind_initialized) {\n        ind = 0; // 初始化 ind，如果需要其他初始值，可根据实际情况调整。\n        ind_initialized = 1;\n    }\n    int ind1 = ind + 4;\n    if (nocode_wanted)\n        return;\n    if (ind1 > cur_text_section->data_allocated)\n        section_realloc(cur_text_section, ind1);\n    write32le(cur_text_section->data + ind, c);\n    ind = ind1;\n}"
+        }
+    },
+    {
+        "function_id": "arm64-gen.c::arm64_encode_bimm64",
+        "caller": [
+            "arm64-gen.c::arm64_gen_opic",
+            "arm64-gen.c::arm64_movi"
+        ],
+        "callee": [],
+        "function_content": "static int arm64_encode_bimm64(uint64_t x)\r\n{\r\n    int neg = x & 1;\r\n    int rep, pos, len;\r\n\r\n    if (neg)\r\n        x = ~x;\r\n    if (!x)\r\n        return -1;\r\n\r\n    if (x >> 2 == (x & (((uint64_t)1 << (64 - 2)) - 1)))\r\n        rep = 2, x &= ((uint64_t)1 << 2) - 1;\r\n    else if (x >> 4 == (x & (((uint64_t)1 << (64 - 4)) - 1)))\r\n        rep = 4, x &= ((uint64_t)1 <<  4) - 1;\r\n    else if (x >> 8 == (x & (((uint64_t)1 << (64 - 8)) - 1)))\r\n        rep = 8, x &= ((uint64_t)1 <<  8) - 1;\r\n    else if (x >> 16 == (x & (((uint64_t)1 << (64 - 16)) - 1)))\r\n        rep = 16, x &= ((uint64_t)1 << 16) - 1;\r\n    else if (x >> 32 == (x & (((uint64_t)1 << (64 - 32)) - 1)))\r\n        rep = 32, x &= ((uint64_t)1 << 32) - 1;\r\n    else\r\n        rep = 64;\r\n\r\n    pos = 0;\r\n    if (!(x & (((uint64_t)1 << 32) - 1))) x >>= 32, pos += 32;\r\n    if (!(x & (((uint64_t)1 << 16) - 1))) x >>= 16, pos += 16;\r\n    if (!(x & (((uint64_t)1 <<  8) - 1))) x >>= 8, pos += 8;\r\n    if (!(x & (((uint64_t)1 <<  4) - 1))) x >>= 4, pos += 4;\r\n    if (!(x & (((uint64_t)1 <<  2) - 1))) x >>= 2, pos += 2;\r\n    if (!(x & (((uint64_t)1 <<  1) - 1))) x >>= 1, pos += 1;\r\n\r\n    len = 0;\r\n    if (!(~x & (((uint64_t)1 << 32) - 1))) x >>= 32, len += 32;\r\n    if (!(~x & (((uint64_t)1 << 16) - 1))) x >>= 16, len += 16;\r\n    if (!(~x & (((uint64_t)1 << 8) - 1))) x >>= 8, len += 8;\r\n    if (!(~x & (((uint64_t)1 << 4) - 1))) x >>= 4, len += 4;\r\n    if (!(~x & (((uint64_t)1 << 2) - 1))) x >>= 2, len += 2;\r\n    if (!(~x & (((uint64_t)1 << 1) - 1))) x >>= 1, len += 1;\r\n\r\n    if (x)\r\n        return -1;\r\n    if (neg) {\r\n        pos = (pos + len) & (rep - 1);\r\n        len = rep - len;\r\n    }\r\n    return ((0x1000 & rep << 6) | (((rep - 1) ^ 31) << 1 & 63) |\r\n            ((rep - pos) & (rep - 1)) << 6 | (len - 1));\r\n}",
+        "function_name": "arm64_encode_bimm64",
+        "file_path": "arm64-gen.c",
+        "language": "c",
+        "caller_num": 2,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-190",
+                "description": "整数溢出风险，可能导致不正确的返回值或行为",
+                "defect_index": 0.7,
+                "repair_rate": 0.75,
+                "impact_degree": 0.6
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-129",
+                "description": "数组越界访问风险，检查条件可能不充分",
+                "defect_index": 0.8,
+                "repair_rate": 0.85,
+                "impact_degree": 0.65
+            },
+            {
+                "defect_rate": 0.1,
+                "CWE_id": "CWE-476",
+                "description": "空指针解引用的潜在风险，若输入变更未处理可能导致错误",
+                "defect_index": 0.5,
+                "repair_rate": 0.9,
+                "impact_degree": 0.5
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.6666666666666666,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.2,
+            "CWE_id": "CWE-129",
+            "description": "数组越界访问风险，检查条件可能不充分",
+            "defect_index": 0.8,
+            "repair_rate": 0.85,
+            "impact_degree": 0.65
+        },
+        "repairs": {
+            "repair_advice": "在数组访问操作之前，应确保访问的索引在有效范围内，以避免数组越界访问的风险。具体而言，应在计算 'pos' 和 'len' 后、返回计算结果之前，增加对 'neg', 'rep', 'pos' 和 'len' 相关计算的边界检查。",
+            "repair_patch": "- return ((0x1000 & rep << 6) | (((rep - 1) ^ 31) << 1 & 63) | ((rep - pos) & (rep - 1)) << 6 | (len - 1));\n+ if (pos < 0 || pos >= rep || len < 0 || len >= rep) {\n+     return -1;\n+ }\n+ return ((0x1000 & rep << 6) | (((rep - 1) ^ 31) << 1 & 63) | ((rep - pos) & (rep - 1)) << 6 | (len - 1));",
+            "repair_code": "static int arm64_encode_bimm64(uint64_t x)\n{\n    int neg = x & 1;\n    int rep, pos, len;\n\n    if (neg)\n        x = ~x;\n    if (!x)\n        return -1;\n\n    if (x >> 2 == (x & (((uint64_t)1 << (64 - 2)) - 1)))\n        rep = 2, x &= ((uint64_t)1 << 2) - 1;\n    else if (x >> 4 == (x & (((uint64_t)1 << (64 - 4)) - 1)))\n        rep = 4, x &= ((uint64_t)1 <<  4) - 1;\n    else if (x >> 8 == (x & (((uint64_t)1 << (64 - 8)) - 1)))\n        rep = 8, x &= ((uint64_t)1 <<  8) - 1;\n    else if (x >> 16 == (x & (((uint64_t)1 << (64 - 16)) - 1)))\n        rep = 16, x &= ((uint64_t)1 << 16) - 1;\n    else if (x >> 32 == (x & (((uint64_t)1 << (64 - 32)) - 1)))\n        rep = 32, x &= ((uint64_t)1 << 32) - 1;\n    else\n        rep = 64;\n\n    pos = 0;\n    if (!(x & (((uint64_t)1 << 32) - 1))) x >>= 32, pos += 32;\n    if (!(x & (((uint64_t)1 << 16) - 1))) x >>= 16, pos += 16;\n    if (!(x & (((uint64_t)1 <<  8) - 1))) x >>= 8, pos += 8;\n    if (!(x & (((uint64_t)1 <<  4) - 1))) x >>= 4, pos += 4;\n    if (!(x & (((uint64_t)1 <<  2) - 1))) x >>= 2, pos += 2;\n    if (!(x & (((uint64_t)1 <<  1) - 1))) x >>= 1, pos += 1;\n\n    len = 0;\n    if (!(~x & (((uint64_t)1 << 32) - 1))) x >>= 32, len += 32;\n    if (!(~x & (((uint64_t)1 << 16) - 1))) x >>= 16, len += 16;\n    if (!(~x & (((uint64_t)1 << 8) - 1))) x >>= 8, len += 8;\n    if (!(~x & (((uint64_t)1 << 4) - 1))) x >>= 4, len += 4;\n    if (!(~x & (((uint64_t)1 << 2) - 1))) x >>= 2, len += 2;\n    if (!(~x & (((uint64_t)1 << 1) - 1))) x >>= 1, len += 1;\n\n    if (x)\n        return -1;\n    if (neg) {\n        pos = (pos + len) & (rep - 1);\n        len = rep - len;\n    }\n    if (pos < 0 || pos >= rep || len < 0 || len >= rep) {\n        return -1;\n    }\n    return ((0x1000 & rep << 6) | (((rep - 1) ^ 31) << 1 & 63) | ((rep - pos) & (rep - 1)) << 6 | (len - 1));\n}"
+        }
+    },
+    {
+        "function_id": "arm64-gen.c::arm64_movi",
+        "caller": [
+            "arm64-gen.c::arm64_movimm"
+        ],
+        "callee": [
+            "arm64-gen.c::arm64_encode_bimm64"
+        ],
+        "function_content": "static uint32_t arm64_movi(int r, uint64_t x)\r\n{\r\n    uint64_t m = 0xffff;\r\n    int e;\r\n    if (!(x & ~m))\r\n        return 0x52800000 | r | x << 5; // movz w(r),#(x)\r\n    if (!(x & ~(m << 16)))\r\n        return 0x52a00000 | r | x >> 11; // movz w(r),#(x >> 16),lsl #16\r\n    if (!(x & ~(m << 32)))\r\n        return 0xd2c00000 | r | x >> 27; // movz x(r),#(x >> 32),lsl #32\r\n    if (!(x & ~(m << 48)))\r\n        return 0xd2e00000 | r | x >> 43; // movz x(r),#(x >> 48),lsl #48\r\n    if ((x & ~m) == m << 16)\r\n        return (0x12800000 | r |\r\n                (~x << 5 & 0x1fffe0)); // movn w(r),#(~x)\r\n    if ((x & ~(m << 16)) == m)\r\n        return (0x12a00000 | r |\r\n                (~x >> 11 & 0x1fffe0)); // movn w(r),#(~x >> 16),lsl #16\r\n    if (!~(x | m))\r\n        return (0x92800000 | r |\r\n                (~x << 5 & 0x1fffe0)); // movn x(r),#(~x)\r\n    if (!~(x | m << 16))\r\n        return (0x92a00000 | r |\r\n                (~x >> 11 & 0x1fffe0)); // movn x(r),#(~x >> 16),lsl #16\r\n    if (!~(x | m << 32))\r\n        return (0x92c00000 | r |\r\n                (~x >> 27 & 0x1fffe0)); // movn x(r),#(~x >> 32),lsl #32\r\n    if (!~(x | m << 48))\r\n        return (0x92e00000 | r |\r\n                (~x >> 43 & 0x1fffe0)); // movn x(r),#(~x >> 32),lsl #32\r\n    if (!(x >> 32) && (e = arm64_encode_bimm64(x | x << 32)) >= 0)\r\n        return 0x320003e0 | r | (uint32_t)e << 10; // movi w(r),#(x)\r\n    if ((e = arm64_encode_bimm64(x)) >= 0)\r\n        return 0xb20003e0 | r | (uint32_t)e << 10; // movi x(r),#(x)\r\n    return 0;\r\n}",
+        "function_name": "arm64_movi",
+        "file_path": "arm64-gen.c",
+        "language": "c",
+        "caller_num": 1,
+        "callee_num": 1,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-119",
+                "description": "可能存在缓冲区溢出风险，特别是与位运算操作相关的部分。",
+                "defect_index": 0.34,
+                "repair_rate": 0.85,
+                "impact_degree": 0.3
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-135",
+                "description": "在处理移位操作和位掩码时可能导致不正确的位数被处理，导致未定义的行为。",
+                "defect_index": 0.5,
+                "repair_rate": 0.75,
+                "impact_degree": 0.4
+            },
+            {
+                "defect_rate": 0.1,
+                "CWE_id": "CWE-380",
+                "description": "存在对输入参数进行不充分验证的情况，可能导致意外行为。",
+                "defect_index": 0.28,
+                "repair_rate": 0.9,
+                "impact_degree": 0.25
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.37333333333333335,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.2,
+            "CWE_id": "CWE-135",
+            "description": "在处理移位操作和位掩码时可能导致不正确的位数被处理，导致未定义的行为。",
+            "defect_index": 0.5,
+            "repair_rate": 0.75,
+            "impact_degree": 0.4
+        },
+        "repairs": {
+            "repair_advice": "在处理位移和位掩码操作时，应确保输入参数 x 的值与处理逻辑相符合，以避免未定义的行为。可以添加对 x 的范围检查，确保其在合法范围内。",
+            "repair_patch": "- if (!(x & ~m))\n+ if (!(x & ~m) && (x <= UINT64_MAX))\n- if (!(x & ~(m << 16)))\n+ if (!(x & ~(m << 16)) && (x <= UINT64_MAX))\n- if (!(x & ~(m << 32)))\n+ if (!(x & ~(m << 32)) && (x <= UINT64_MAX))\n- if (!(x & ~(m << 48)))\n+ if (!(x & ~(m << 48)) && (x <= UINT64_MAX))",
+            "repair_code": "static uint32_t arm64_movi(int r, uint64_t x)\n{\n    uint64_t m = 0xffff;\n    int e;\n    if (x <= UINT64_MAX && !(x & ~m))\n        return 0x52800000 | r | x << 5; // movz w(r),#(x)\n    if (x <= UINT64_MAX && !(x & ~(m << 16)))\n        return 0x52a00000 | r | x >> 11; // movz w(r),#(x >> 16),lsl #16\n    if (x <= UINT64_MAX && !(x & ~(m << 32)))\n        return 0xd2c00000 | r | x >> 27; // movz x(r),#(x >> 32),lsl #32\n    if (x <= UINT64_MAX && !(x & ~(m << 48)))\n        return 0xd2e00000 | r | x >> 43; // movz x(r),#(x >> 48),lsl #48\n    if (x <= UINT64_MAX && (x & ~m) == m << 16)\n        return (0x12800000 | r |\n                (~x << 5 & 0x1fffe0)); // movn w(r),#(~x)\n    if (x <= UINT64_MAX && (x & ~(m << 16)) == m)\n        return (0x12a00000 | r |\n                (~x >> 11 & 0x1fffe0)); // movn w(r),#(~x >> 16),lsl #16\n    if (x <= UINT64_MAX && !~(x | m))\n        return (0x92800000 | r |\n                (~x << 5 & 0x1fffe0)); // movn x(r),#(~x)\n    if (x <= UINT64_MAX && !~(x | m << 16))\n        return (0x92a00000 | r |\n                (~x >> 11 & 0x1fffe0)); // movn x(r),#(~x >> 16),lsl #16\n    if (x <= UINT64_MAX && !~(x | m << 32))\n        return (0x92c00000 | r |\n                (~x >> 27 & 0x1fffe0)); // movn x(r),#(~x >> 32),lsl #32\n    if (x <= UINT64_MAX && !~(x | m << 48))\n        return (0x92e00000 | r |\n                (~x >> 43 & 0x1fffe0)); // movn x(r),#(~x >> 32),lsl #32\n    if (x <= UINT64_MAX && !(x >> 32) && (e = arm64_encode_bimm64(x | x << 32)) >= 0)\n        return 0x320003e0 | r | (uint32_t)e << 10; // movi w(r),#(x)\n    if (x <= UINT64_MAX && (e = arm64_encode_bimm64(x)) >= 0)\n        return 0xb20003e0 | r | (uint32_t)e << 10; // movi x(r),#(x)\n    return 0;\n}"
+        }
+    }
+]

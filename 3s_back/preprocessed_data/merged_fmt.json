@@ -1,0 +1,721 @@
+[
+    {
+        "function_id": "support/docopt.py::__init__",
+        "caller": [
+            "support\\docopt.py::__init__"
+        ],
+        "callee": [],
+        "function_content": "def __init__(self, source, error=DocoptExit):\r\n        self += source.split() if hasattr(source, 'split') else source\r\n        self.error = error"
+    },
+    {
+        "function_id": "support/docopt.py::__eq__",
+        "caller": [],
+        "callee": [],
+        "function_content": "def __eq__(self, other):\r\n        return repr(self) == repr(other)"
+    },
+    {
+        "function_id": "support/docopt.py::__hash__",
+        "caller": [],
+        "callee": [],
+        "function_content": "def __hash__(self):\r\n        return hash(repr(self))"
+    },
+    {
+        "function_id": "support/docopt.py::fix",
+        "caller": [
+            "support\\docopt.py::docopt"
+        ],
+        "callee": [
+            "support\\docopt.py::fix_identities",
+            "support\\docopt.py::fix_repeating_arguments"
+        ],
+        "function_content": "def fix(self):\r\n        self.fix_identities()\r\n        self.fix_repeating_arguments()\r\n        return self"
+    },
+    {
+        "function_id": "support/docopt.py::fix_identities",
+        "caller": [
+            "support\\docopt.py::fix_identities",
+            "support\\docopt.py::fix"
+        ],
+        "callee": [
+            "support\\docopt.py::fix_identities",
+            "support\\docopt.py::flat"
+        ],
+        "function_content": "def fix_identities(self, uniq=None):\r\n        \"\"\"Make pattern-tree tips point to same object if they are equal.\"\"\"\r\n        if not hasattr(self, 'children'):\r\n            return self\r\n        uniq = list(set(self.flat())) if uniq is None else uniq\r\n        for i, child in enumerate(self.children):\r\n            if not hasattr(child, 'children'):\r\n                assert child in uniq\r\n                self.children[i] = uniq[uniq.index(child)]\r\n            else:\r\n                child.fix_identities(uniq)"
+    },
+    {
+        "function_id": "support/docopt.py::fix_repeating_arguments",
+        "caller": [
+            "support\\docopt.py::fix"
+        ],
+        "callee": [
+            "support\\docopt.py::transform"
+        ],
+        "function_content": "def fix_repeating_arguments(self):\r\n        \"\"\"Fix elements that should accumulate/increment values.\"\"\"\r\n        either = [list(child.children) for child in transform(self).children]\r\n        for case in either:\r\n            for e in [child for child in case if case.count(child) > 1]:\r\n                if type(e) is Argument or type(e) is Option and e.argcount:\r\n                    if e.value is None:\r\n                        e.value = []\r\n                    elif type(e.value) is not list:\r\n                        e.value = e.value.split()\r\n                if type(e) is Command or type(e) is Option and e.argcount == 0:\r\n                    e.value = 0\r\n        return self"
+    },
+    {
+        "function_id": "support/docopt.py::transform",
+        "caller": [
+            "support\\docopt.py::fix_repeating_arguments"
+        ],
+        "callee": [],
+        "function_content": "def transform(pattern):\r\n    \"\"\"Expand pattern into an (almost) equivalent one, but with single Either.\r\n\r\n    Example: ((-a | -b) (-c | -d)) => (-a -c | -a -d | -b -c | -b -d)\r\n    Quirks: [-a] => (-a), (-a...) => (-a -a)\r\n\r\n    \"\"\"\r\n    result = []\r\n    groups = [[pattern]]\r\n    while groups:\r\n        children = groups.pop(0)\r\n        parents = [Required, Optional, OptionsShortcut, Either, OneOrMore]\r\n        if any(t in map(type, children) for t in parents):\r\n            child = [c for c in children if type(c) in parents][0]\r\n            children.remove(child)\r\n            if type(child) is Either:\r\n                for c in child.children:\r\n                    groups.append([c] + children)\r\n            elif type(child) is OneOrMore:\r\n                groups.append(child.children * 2 + children)\r\n            else:\r\n                groups.append(child.children + children)\r\n        else:\r\n            result.append(children)\r\n    return Either(*[Required(*e) for e in result])"
+    },
+    {
+        "function_id": "support/docopt.py::__repr__",
+        "caller": [],
+        "callee": [],
+        "function_content": "def __repr__(self):\r\n        return '{%s}' % ',\\n '.join('%r: %r' % i for i in sorted(self.items()))"
+    },
+    {
+        "function_id": "support/docopt.py::flat",
+        "caller": [
+            "support\\docopt.py::fix_identities",
+            "support\\docopt.py::flat",
+            "support\\docopt.py::docopt"
+        ],
+        "callee": [
+            "support\\docopt.py::flat"
+        ],
+        "function_content": "def flat(self, *types):\r\n        if type(self) in types:\r\n            return [self]\r\n        return sum([child.flat(*types) for child in self.children], [])"
+    },
+    {
+        "function_id": "support/docopt.py::match",
+        "caller": [
+            "support\\docopt.py::match",
+            "support\\docopt.py::docopt"
+        ],
+        "callee": [
+            "support\\docopt.py::match"
+        ],
+        "function_content": "def match(self, left, collected=None):\r\n        collected = [] if collected is None else collected\r\n        outcomes = []\r\n        for pattern in self.children:\r\n            matched, _, _ = outcome = pattern.match(left, collected)\r\n            if matched:\r\n                outcomes.append(outcome)\r\n        if outcomes:\r\n            return min(outcomes, key=lambda outcome: len(outcome[1]))\r\n        return False, left, collected"
+    },
+    {
+        "function_id": "support/docopt.py::single_match",
+        "caller": [
+            "support\\docopt.py::match"
+        ],
+        "callee": [],
+        "function_content": "def single_match(self, left):\r\n        for n, pattern in enumerate(left):\r\n            if self.name == pattern.name:\r\n                return n, pattern\r\n        return None, None"
+    },
+    {
+        "function_id": "support/docopt.py::parse",
+        "caller": [
+            "support\\docopt.py::parse_defaults",
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::collect_compound",
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::__init__",
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::collect"
+        ],
+        "callee": [],
+        "function_content": "def parse(class_, option_description):\r\n        short, long, argcount, value = None, None, 0, False\r\n        options, _, description = option_description.strip().partition('  ')\r\n        options = options.replace(',', ' ').replace('=', ' ')\r\n        for s in options.split():\r\n            if s.startswith('--'):\r\n                long = s\r\n            elif s.startswith('-'):\r\n                short = s\r\n            else:\r\n                argcount = 1\r\n        if argcount:\r\n            matched = re.findall('\\[default: (.*)\\]', description, flags=re.I)\r\n            value = matched[0] if matched else None\r\n        return class_(short, long, argcount, value)"
+    },
+    {
+        "function_id": "support/docopt.py::name",
+        "caller": [],
+        "callee": [],
+        "function_content": "def name(self):\r\n        return self.long or self.short"
+    },
+    {
+        "function_id": "support/docopt.py::from_pattern",
+        "caller": [
+            "support\\docopt.py::parse_pattern"
+        ],
+        "callee": [],
+        "function_content": "def from_pattern(source):\r\n        source = re.sub(r'([\\[\\]\\(\\)\\|]|\\.\\.\\.)', r' \\1 ', source)\r\n        source = [s for s in re.split('\\s+|(\\S*<.*?>)', source) if s]\r\n        return Tokens(source, error=DocoptLanguageError)"
+    },
+    {
+        "function_id": "support/docopt.py::move",
+        "caller": [
+            "support\\docopt.py::parse_argv",
+            "support\\docopt.py::parse_seq",
+            "support\\docopt.py::parse_shorts",
+            "support\\docopt.py::parse_long",
+            "support\\docopt.py::parse_atom",
+            "support\\docopt.py::parse_expr"
+        ],
+        "callee": [],
+        "function_content": "def move(self):\r\n        return self.pop(0) if len(self) else None"
+    },
+    {
+        "function_id": "support/docopt.py::current",
+        "caller": [
+            "support\\docopt.py::parse_pattern",
+            "support\\docopt.py::parse_argv",
+            "support\\docopt.py::parse_seq",
+            "support\\docopt.py::parse_shorts",
+            "support\\docopt.py::parse_long",
+            "support\\docopt.py::parse_atom",
+            "support\\docopt.py::parse_expr"
+        ],
+        "callee": [],
+        "function_content": "def current(self):\r\n        return self[0] if len(self) else None"
+    },
+    {
+        "function_id": "support/docopt.py::parse_long",
+        "caller": [
+            "support\\docopt.py::parse_argv",
+            "support\\docopt.py::parse_atom"
+        ],
+        "callee": [
+            "support\\docopt.py::move",
+            "support\\docopt.py::current"
+        ],
+        "function_content": "def parse_long(tokens, options):\r\n    \"\"\"long ::= '--' chars [ ( ' ' | '=' ) chars ] ;\"\"\"\r\n    long, eq, value = tokens.move().partition('=')\r\n    assert long.startswith('--')\r\n    value = None if eq == value == '' else value\r\n    similar = [o for o in options if o.long == long]\r\n    if tokens.error is DocoptExit and similar == []:  # if no exact match\r\n        similar = [o for o in options if o.long and o.long.startswith(long)]\r\n    if len(similar) > 1:  # might be simply specified ambiguously 2+ times?\r\n        raise tokens.error('%s is not a unique prefix: %s?' %\r\n                           (long, ', '.join(o.long for o in similar)))\r\n    elif len(similar) < 1:\r\n        argcount = 1 if eq == '=' else 0\r\n        o = Option(None, long, argcount)\r\n        options.append(o)\r\n        if tokens.error is DocoptExit:\r\n            o = Option(None, long, argcount, value if argcount else True)\r\n    else:\r\n        o = Option(similar[0].short, similar[0].long,\r\n                   similar[0].argcount, similar[0].value)\r\n        if o.argcount == 0:\r\n            if value is not None:\r\n                raise tokens.error('%s must not have an argument' % o.long)\r\n        else:\r\n            if value is None:\r\n                if tokens.current() in [None, '--']:\r\n                    raise tokens.error('%s requires argument' % o.long)\r\n                value = tokens.move()\r\n        if tokens.error is DocoptExit:\r\n            o.value = value if value is not None else True\r\n    return [o]"
+    },
+    {
+        "function_id": "support/docopt.py::parse_shorts",
+        "caller": [
+            "support\\docopt.py::parse_argv",
+            "support\\docopt.py::parse_atom"
+        ],
+        "callee": [
+            "support\\docopt.py::move",
+            "support\\docopt.py::current"
+        ],
+        "function_content": "def parse_shorts(tokens, options):\r\n    \"\"\"shorts ::= '-' ( chars )* [ [ ' ' ] chars ] ;\"\"\"\r\n    token = tokens.move()\r\n    assert token.startswith('-') and not token.startswith('--')\r\n    left = token.lstrip('-')\r\n    parsed = []\r\n    while left != '':\r\n        short, left = '-' + left[0], left[1:]\r\n        similar = [o for o in options if o.short == short]\r\n        if len(similar) > 1:\r\n            raise tokens.error('%s is specified ambiguously %d times' %\r\n                               (short, len(similar)))\r\n        elif len(similar) < 1:\r\n            o = Option(short, None, 0)\r\n            options.append(o)\r\n            if tokens.error is DocoptExit:\r\n                o = Option(short, None, 0, True)\r\n        else:  # why copying is necessary here?\r\n            o = Option(short, similar[0].long,\r\n                       similar[0].argcount, similar[0].value)\r\n            value = None\r\n            if o.argcount != 0:\r\n                if left == '':\r\n                    if tokens.current() in [None, '--']:\r\n                        raise tokens.error('%s requires argument' % short)\r\n                    value = tokens.move()\r\n                else:\r\n                    value = left\r\n                    left = ''\r\n            if tokens.error is DocoptExit:\r\n                o.value = value if value is not None else True\r\n        parsed.append(o)\r\n    return parsed"
+    },
+    {
+        "function_id": "support/docopt.py::parse_pattern",
+        "caller": [
+            "support\\docopt.py::docopt"
+        ],
+        "callee": [
+            "support\\docopt.py::current",
+            "support\\docopt.py::parse_expr",
+            "support\\docopt.py::from_pattern"
+        ],
+        "function_content": "def parse_pattern(source, options):\r\n    tokens = Tokens.from_pattern(source)\r\n    result = parse_expr(tokens, options)\r\n    if tokens.current() is not None:\r\n        raise tokens.error('unexpected ending: %r' % ' '.join(tokens))\r\n    return Required(*result)"
+    },
+    {
+        "function_id": "support/docopt.py::parse_expr",
+        "caller": [
+            "support\\docopt.py::parse_pattern",
+            "support\\docopt.py::parse_atom"
+        ],
+        "callee": [
+            "support\\docopt.py::move",
+            "support\\docopt.py::current",
+            "support\\docopt.py::parse_seq"
+        ],
+        "function_content": "def parse_expr(tokens, options):\r\n    \"\"\"expr ::= seq ( '|' seq )* ;\"\"\"\r\n    seq = parse_seq(tokens, options)\r\n    if tokens.current() != '|':\r\n        return seq\r\n    result = [Required(*seq)] if len(seq) > 1 else seq\r\n    while tokens.current() == '|':\r\n        tokens.move()\r\n        seq = parse_seq(tokens, options)\r\n        result += [Required(*seq)] if len(seq) > 1 else seq\r\n    return [Either(*result)] if len(result) > 1 else result"
+    },
+    {
+        "function_id": "support/docopt.py::parse_seq",
+        "caller": [
+            "support\\docopt.py::parse_expr"
+        ],
+        "callee": [
+            "support\\docopt.py::move",
+            "support\\docopt.py::current",
+            "support\\docopt.py::parse_atom"
+        ],
+        "function_content": "def parse_seq(tokens, options):\r\n    \"\"\"seq ::= ( atom [ '...' ] )* ;\"\"\"\r\n    result = []\r\n    while tokens.current() not in [None, ']', ')', '|']:\r\n        atom = parse_atom(tokens, options)\r\n        if tokens.current() == '...':\r\n            atom = [OneOrMore(*atom)]\r\n            tokens.move()\r\n        result += atom\r\n    return result"
+    },
+    {
+        "function_id": "support/docopt.py::parse_atom",
+        "caller": [
+            "support\\docopt.py::parse_seq"
+        ],
+        "callee": [
+            "support\\docopt.py::move",
+            "support\\docopt.py::current",
+            "support\\docopt.py::parse_shorts",
+            "support\\docopt.py::parse_long",
+            "support\\docopt.py::parse_expr"
+        ],
+        "function_content": "def parse_atom(tokens, options):\r\n    \"\"\"atom ::= '(' expr ')' | '[' expr ']' | 'options'\r\n             | long | shorts | argument | command ;\r\n    \"\"\"\r\n    token = tokens.current()\r\n    result = []\r\n    if token in '([':\r\n        tokens.move()\r\n        matching, pattern = {'(': [')', Required], '[': [']', Optional]}[token]\r\n        result = pattern(*parse_expr(tokens, options))\r\n        if tokens.move() != matching:\r\n            raise tokens.error(\"unmatched '%s'\" % token)\r\n        return [result]\r\n    elif token == 'options':\r\n        tokens.move()\r\n        return [OptionsShortcut()]\r\n    elif token.startswith('--') and token != '--':\r\n        return parse_long(tokens, options)\r\n    elif token.startswith('-') and token not in ('-', '--'):\r\n        return parse_shorts(tokens, options)\r\n    elif token.startswith('<') and token.endswith('>') or token.isupper():\r\n        return [Argument(tokens.move())]\r\n    else:\r\n        return [Command(tokens.move())]"
+    },
+    {
+        "function_id": "support/docopt.py::parse_argv",
+        "caller": [
+            "support\\docopt.py::docopt"
+        ],
+        "callee": [
+            "support\\docopt.py::move",
+            "support\\docopt.py::current",
+            "support\\docopt.py::parse_shorts",
+            "support\\docopt.py::parse_long"
+        ],
+        "function_content": "def parse_argv(tokens, options, options_first=False):\r\n    \"\"\"Parse command-line argument vector.\r\n\r\n    If options_first:\r\n        argv ::= [ long | shorts ]* [ argument ]* [ '--' [ argument ]* ] ;\r\n    else:\r\n        argv ::= [ long | shorts | argument ]* [ '--' [ argument ]* ] ;\r\n\r\n    \"\"\"\r\n    parsed = []\r\n    while tokens.current() is not None:\r\n        if tokens.current() == '--':\r\n            return parsed + [Argument(None, v) for v in tokens]\r\n        elif tokens.current().startswith('--'):\r\n            parsed += parse_long(tokens, options)\r\n        elif tokens.current().startswith('-') and tokens.current() != '-':\r\n            parsed += parse_shorts(tokens, options)\r\n        elif options_first:\r\n            return parsed + [Argument(None, v) for v in tokens]\r\n        else:\r\n            parsed.append(Argument(None, tokens.move()))\r\n    return parsed"
+    },
+    {
+        "function_id": "support/docopt.py::parse_defaults",
+        "caller": [
+            "support\\docopt.py::docopt"
+        ],
+        "callee": [
+            "support\\docopt.py::parse",
+            "support\\docopt.py::parse_section"
+        ],
+        "function_content": "def parse_defaults(doc):\r\n    defaults = []\r\n    for s in parse_section('options:', doc):\r\n        # FIXME corner case \"bla: options: --foo\"\r\n        _, _, s = s.partition(':')  # get rid of \"options:\"\r\n        split = re.split('\\n[ \\t]*(-\\S+?)', '\\n' + s)[1:]\r\n        split = [s1 + s2 for s1, s2 in zip(split[::2], split[1::2])]\r\n        options = [Option.parse(s) for s in split if s.startswith('-')]\r\n        defaults += options\r\n    return defaults"
+    },
+    {
+        "function_id": "support/docopt.py::parse_section",
+        "caller": [
+            "support\\docopt.py::parse_defaults",
+            "support\\docopt.py::docopt"
+        ],
+        "callee": [],
+        "function_content": "def parse_section(name, source):\r\n    pattern = re.compile('^([^\\n]*' + name + '[^\\n]*\\n?(?:[ \\t].*?(?:\\n|$))*)',\r\n                         re.IGNORECASE | re.MULTILINE)\r\n    return [s.strip() for s in pattern.findall(source)]"
+    },
+    {
+        "function_id": "support/docopt.py::formal_usage",
+        "caller": [
+            "support\\docopt.py::docopt"
+        ],
+        "callee": [],
+        "function_content": "def formal_usage(section):\r\n    _, _, section = section.partition(':')  # drop \"usage:\"\r\n    pu = section.split()\r\n    return '( ' + ' '.join(') | (' if s == pu[0] else s for s in pu[1:]) + ' )'"
+    },
+    {
+        "function_id": "support/docopt.py::extras",
+        "caller": [
+            "support\\docopt.py::docopt"
+        ],
+        "callee": [],
+        "function_content": "def extras(help, version, options, doc):\r\n    if help and any((o.name in ('-h', '--help')) and o.value for o in options):\r\n        print(doc.strip(\"\\n\"))\r\n        sys.exit()\r\n    if version and any(o.name == '--version' and o.value for o in options):\r\n        print(version)\r\n        sys.exit()"
+    },
+    {
+        "function_id": "support/docopt.py::docopt",
+        "caller": [],
+        "callee": [
+            "support\\docopt.py::match",
+            "support\\docopt.py::fix",
+            "support\\docopt.py::parse_pattern",
+            "support\\docopt.py::parse_defaults",
+            "support\\docopt.py::formal_usage",
+            "support\\docopt.py::parse_argv",
+            "support\\docopt.py::flat",
+            "support\\docopt.py::parse_section",
+            "support\\docopt.py::extras"
+        ],
+        "function_content": "def docopt(doc, argv=None, help=True, version=None, options_first=False):\r\n    \"\"\"Parse `argv` based on command-line interface described in `doc`.\r\n\r\n    `docopt` creates your command-line interface based on its\r\n    description that you pass as `doc`. Such description can contain\r\n    --options, <positional-argument>, commands, which could be\r\n    [optional], (required), (mutually | exclusive) or repeated...\r\n\r\n    Parameters\r\n    ----------\r\n    doc : str\r\n        Description of your command-line interface.\r\n    argv : list of str, optional\r\n        Argument vector to be parsed. sys.argv[1:] is used if not\r\n        provided.\r\n    help : bool (default: True)\r\n        Set to False to disable automatic help on -h or --help\r\n        options.\r\n    version : any object\r\n        If passed, the object will be printed if --version is in\r\n        `argv`.\r\n    options_first : bool (default: False)\r\n        Set to True to require options precede positional arguments,\r\n        i.e. to forbid options and positional arguments intermix.\r\n\r\n    Returns\r\n    -------\r\n    args : dict\r\n        A dictionary, where keys are names of command-line elements\r\n        such as e.g. \"--verbose\" and \"<path>\", and values are the\r\n        parsed values of those elements.\r\n\r\n    Example\r\n    -------\r\n    >>> from docopt import docopt\r\n    >>> doc = '''\r\n    ... Usage:\r\n    ...     my_program tcp <host> <port> [--timeout=<seconds>]\r\n    ...     my_program serial <port> [--baud=<n>] [--timeout=<seconds>]\r\n    ...     my_program (-h | --help | --version)\r\n    ...\r\n    ... Options:\r\n    ...     -h, --help  Show this screen and exit.\r\n    ...     --baud=<n>  Baudrate [default: 9600]\r\n    ... '''\r\n    >>> argv = ['tcp', '127.0.0.1', '80', '--timeout', '30']\r\n    >>> docopt(doc, argv)\r\n    {'--baud': '9600',\r\n     '--help': False,\r\n     '--timeout': '30',\r\n     '--version': False,\r\n     '<host>': '127.0.0.1',\r\n     '<port>': '80',\r\n     'serial': False,\r\n     'tcp': True}\r\n\r\n    See also\r\n    --------\r\n    * For video introduction see http://docopt.org\r\n    * Full documentation is available in README.rst as well as online\r\n      at https://github.com/docopt/docopt#readme\r\n\r\n    \"\"\"\r\n    argv = sys.argv[1:] if argv is None else argv\r\n\r\n    usage_sections = parse_section('usage:', doc)\r\n    if len(usage_sections) == 0:\r\n        raise DocoptLanguageError('\"usage:\" (case-insensitive) not found.')\r\n    if len(usage_sections) > 1:\r\n        raise DocoptLanguageError('More than one \"usage:\" (case-insensitive).')\r\n    DocoptExit.usage = usage_sections[0]\r\n\r\n    options = parse_defaults(doc)\r\n    pattern = parse_pattern(formal_usage(DocoptExit.usage), options)\r\n    # [default] syntax for argument is disabled\r\n    #for a in pattern.flat(Argument):\r\n    #    same_name = [d for d in arguments if d.name == a.name]\r\n    #    if same_name:\r\n    #        a.value = same_name[0].value\r\n    argv = parse_argv(Tokens(argv), list(options), options_first)\r\n    pattern_options = set(pattern.flat(Option))\r\n    for options_shortcut in pattern.flat(OptionsShortcut):\r\n        doc_options = parse_defaults(doc)\r\n        options_shortcut.children = list(set(doc_options) - pattern_options)\r\n        #if any_options:\r\n        #    options_shortcut.children += [Option(o.short, o.long, o.argcount)\r\n        #                    for o in argv if type(o) is Option]\r\n    extras(help, version, argv, doc)\r\n    matched, left, collected = pattern.fix().match(argv)\r\n    if matched and left == []:  # better error message if left?\r\n        return Dict((a.name, a.value) for a in (pattern.flat() + collected))\r\n    raise DocoptExit()"
+    },
+    {
+        "function_id": "support/printable.py::to_ranges",
+        "caller": [
+            "support\\printable.py::main"
+        ],
+        "callee": [],
+        "function_content": "def to_ranges(iter):\r\n    current = None\r\n    for i in iter:\r\n        if current is None or i != current[1] or i in (0x10000, 0x20000):\r\n            if current is not None:\r\n                yield tuple(current)\r\n            current = [i, i + 1]\r\n        else:\r\n            current[1] += 1\r\n    if current is not None:\r\n        yield tuple(current)"
+    },
+    {
+        "function_id": "support/printable.py::get_escaped",
+        "caller": [
+            "support\\printable.py::main"
+        ],
+        "callee": [],
+        "function_content": "def get_escaped(codepoints):\r\n    for c in codepoints:\r\n        if (c.class_ or \"Cn\") in \"Cc Cf Cs Co Cn Zl Zp Zs\".split() and c.value != ord(' '):\r\n            yield c.value"
+    },
+    {
+        "function_id": "support/printable.py::get_file",
+        "caller": [
+            "support\\printable.py::main"
+        ],
+        "callee": [],
+        "function_content": "def get_file(f):\r\n    try:\r\n        return open(os.path.basename(f))\r\n    except FileNotFoundError:\r\n        subprocess.run([\"curl\", \"-O\", f], check=True)\r\n        return open(os.path.basename(f))"
+    },
+    {
+        "function_id": "support/printable.py::get_codepoints",
+        "caller": [
+            "support\\printable.py::main"
+        ],
+        "callee": [],
+        "function_content": "def get_codepoints(f):\r\n    r = csv.reader(f, delimiter=\";\")\r\n    prev_codepoint = 0\r\n    class_first = None\r\n    for row in r:\r\n        codepoint = int(row[0], 16)\r\n        name = row[1]\r\n        class_ = row[2]\r\n\r\n        if class_first is not None:\r\n            if not name.endswith(\"Last>\"):\r\n                raise ValueError(\"Missing Last after First\")\r\n\r\n        for c in range(prev_codepoint + 1, codepoint):\r\n            yield Codepoint(c, class_first)\r\n\r\n        class_first = None\r\n        if name.endswith(\"First>\"):\r\n            class_first = class_\r\n\r\n        yield Codepoint(codepoint, class_)\r\n        prev_codepoint = codepoint\r\n\r\n    if class_first is not None:\r\n        raise ValueError(\"Missing Last after First\")\r\n\r\n    for c in range(prev_codepoint + 1, NUM_CODEPOINTS):\r\n        yield Codepoint(c, None)"
+    },
+    {
+        "function_id": "support/printable.py::compress_singletons",
+        "caller": [
+            "support\\printable.py::main"
+        ],
+        "callee": [],
+        "function_content": "def compress_singletons(singletons):\r\n    uppers = [] # (upper, # items in lowers)\r\n    lowers = []\r\n\r\n    for i in singletons:\r\n        upper = i >> 8\r\n        lower = i & 0xff\r\n        if len(uppers) == 0 or uppers[-1][0] != upper:\r\n            uppers.append((upper, 1))\r\n        else:\r\n            upper, count = uppers[-1]\r\n            uppers[-1] = upper, count + 1\r\n        lowers.append(lower)\r\n\r\n    return uppers, lowers"
+    },
+    {
+        "function_id": "support/printable.py::compress_normal",
+        "caller": [
+            "support\\printable.py::main"
+        ],
+        "callee": [],
+        "function_content": "def compress_normal(normal):\r\n    # lengths 0x00..0x7f are encoded as 00, 01, ..., 7e, 7f\r\n    # lengths 0x80..0x7fff are encoded as 80 80, 80 81, ..., ff fe, ff ff\r\n    compressed = [] # [truelen, (truelenaux), falselen, (falselenaux)]\r\n\r\n    prev_start = 0\r\n    for start, count in normal:\r\n        truelen = start - prev_start\r\n        falselen = count\r\n        prev_start = start + count\r\n\r\n        assert truelen < 0x8000 and falselen < 0x8000\r\n        entry = []\r\n        if truelen > 0x7f:\r\n            entry.append(0x80 | (truelen >> 8))\r\n            entry.append(truelen & 0xff)\r\n        else:\r\n            entry.append(truelen & 0x7f)\r\n        if falselen > 0x7f:\r\n            entry.append(0x80 | (falselen >> 8))\r\n            entry.append(falselen & 0xff)\r\n        else:\r\n            entry.append(falselen & 0x7f)\r\n\r\n        compressed.append(entry)\r\n\r\n    return compressed"
+    },
+    {
+        "function_id": "support/printable.py::print_singletons",
+        "caller": [
+            "support\\printable.py::main"
+        ],
+        "callee": [],
+        "function_content": "def print_singletons(uppers, lowers, uppersname, lowersname):\r\n    print(\"  static constexpr singleton {}[] = {{\".format(uppersname))\r\n    for u, c in uppers:\r\n        print(\"    {{{:#04x}, {}}},\".format(u, c))\r\n    print(\"  };\")\r\n    print(\"  static constexpr unsigned char {}[] = {{\".format(lowersname))\r\n    for i in range(0, len(lowers), 8):\r\n        print(\"    {}\".format(\" \".join(\"{:#04x},\".format(l) for l in lowers[i:i+8])))\r\n    print(\"  };\")"
+    },
+    {
+        "function_id": "support/printable.py::print_normal",
+        "caller": [
+            "support\\printable.py::main"
+        ],
+        "callee": [],
+        "function_content": "def print_normal(normal, normalname):\r\n    print(\"  static constexpr unsigned char {}[] = {{\".format(normalname))\r\n    for v in normal:\r\n        print(\"    {}\".format(\" \".join(\"{:#04x},\".format(i) for i in v)))\r\n    print(\"  };\")"
+    },
+    {
+        "function_id": "support/printable.py::main",
+        "caller": [],
+        "callee": [
+            "support\\printable.py::print_normal",
+            "support\\printable.py::get_escaped",
+            "support\\printable.py::get_file",
+            "support\\printable.py::print_singletons",
+            "support\\printable.py::get_codepoints",
+            "support\\printable.py::compress_normal",
+            "support\\printable.py::to_ranges",
+            "support\\printable.py::compress_singletons"
+        ],
+        "function_content": "def main():\r\n    file = get_file(\"https://www.unicode.org/Public/UNIDATA/UnicodeData.txt\")\r\n\r\n    codepoints = get_codepoints(file)\r\n\r\n    CUTOFF=0x10000\r\n    singletons0 = []\r\n    singletons1 = []\r\n    normal0 = []\r\n    normal1 = []\r\n    extra = []\r\n\r\n    for a, b in to_ranges(get_escaped(codepoints)):\r\n        if a > 2 * CUTOFF:\r\n            extra.append((a, b - a))\r\n        elif a == b - 1:\r\n            if a & CUTOFF:\r\n                singletons1.append(a & ~CUTOFF)\r\n            else:\r\n                singletons0.append(a)\r\n        elif a == b - 2:\r\n            if a & CUTOFF:\r\n                singletons1.append(a & ~CUTOFF)\r\n                singletons1.append((a + 1) & ~CUTOFF)\r\n            else:\r\n                singletons0.append(a)\r\n                singletons0.append(a + 1)\r\n        else:\r\n            if a >= 2 * CUTOFF:\r\n                extra.append((a, b - a))\r\n            elif a & CUTOFF:\r\n                normal1.append((a & ~CUTOFF, b - a))\r\n            else:\r\n                normal0.append((a, b - a))\r\n\r\n    singletons0u, singletons0l = compress_singletons(singletons0)\r\n    singletons1u, singletons1l = compress_singletons(singletons1)\r\n    normal0 = compress_normal(normal0)\r\n    normal1 = compress_normal(normal1)\r\n\r\n    print(\"\"\"\\\r\nFMT_FUNC auto is_printable(uint32_t cp) -> bool {\\\r\n\"\"\")\r\n    print_singletons(singletons0u, singletons0l, 'singletons0', 'singletons0_lower')\r\n    print_singletons(singletons1u, singletons1l, 'singletons1', 'singletons1_lower')\r\n    print_normal(normal0, 'normal0')\r\n    print_normal(normal1, 'normal1')\r\n    print(\"\"\"\\\r\n  auto lower = static_cast<uint16_t>(cp);\r\n  if (cp < 0x10000) {\r\n    return is_printable(lower, singletons0,\r\n                        sizeof(singletons0) / sizeof(*singletons0),\r\n                        singletons0_lower, normal0, sizeof(normal0));\r\n  }\r\n  if (cp < 0x20000) {\r\n    return is_printable(lower, singletons1,\r\n                        sizeof(singletons1) / sizeof(*singletons1),\r\n                        singletons1_lower, normal1, sizeof(normal1));\r\n  }\\\r\n\"\"\")\r\n    for a, b in extra:\r\n        print(\"  if (0x{:x} <= cp && cp < 0x{:x}) return false;\".format(a, a + b))\r\n    print(\"\"\"\\\r\n  return cp < 0x{:x};\r\n}}\\\r\n\"\"\".format(NUM_CODEPOINTS))"
+    },
+    {
+        "function_id": "support/release.py::__init__",
+        "caller": [],
+        "callee": [],
+        "function_content": "def __init__(self, cwd):\r\n        self.cwd = cwd"
+    },
+    {
+        "function_id": "support/release.py::call",
+        "caller": [
+            "support\\release.py::commit",
+            "support\\release.py::push",
+            "support\\release.py::reset",
+            "support\\release.py::clone",
+            "support\\release.py::clean",
+            "support\\release.py::add",
+            "support\\release.py::pull",
+            "support\\release.py::checkout"
+        ],
+        "callee": [],
+        "function_content": "def call(self, method, args, **kwargs):\r\n        return check_call(['git', method] + list(args), **kwargs)"
+    },
+    {
+        "function_id": "support/release.py::add",
+        "caller": [],
+        "callee": [
+            "support\\release.py::call"
+        ],
+        "function_content": "def add(self, *args):\r\n        return self.call('add', args, cwd=self.dir)"
+    },
+    {
+        "function_id": "support/release.py::checkout",
+        "caller": [
+            "support\\release.py::clean_checkout"
+        ],
+        "callee": [
+            "support\\release.py::call"
+        ],
+        "function_content": "def checkout(self, *args):\r\n        return self.call('checkout', args, cwd=self.dir)"
+    },
+    {
+        "function_id": "support/release.py::clean",
+        "caller": [
+            "support\\release.py::clean_checkout"
+        ],
+        "callee": [
+            "support\\release.py::call"
+        ],
+        "function_content": "def clean(self, *args):\r\n        return self.call('clean', args, cwd=self.dir)"
+    },
+    {
+        "function_id": "support/release.py::clone",
+        "caller": [
+            "support\\release.py::update"
+        ],
+        "callee": [
+            "support\\release.py::call"
+        ],
+        "function_content": "def clone(self, *args):\r\n        return self.call('clone', list(args) + [self.dir])"
+    },
+    {
+        "function_id": "support/release.py::commit",
+        "caller": [],
+        "callee": [
+            "support\\release.py::call"
+        ],
+        "function_content": "def commit(self, *args):\r\n        return self.call('commit', args, cwd=self.dir)"
+    },
+    {
+        "function_id": "support/release.py::pull",
+        "caller": [],
+        "callee": [
+            "support\\release.py::call"
+        ],
+        "function_content": "def pull(self, *args):\r\n        return self.call('pull', args, cwd=self.dir)"
+    },
+    {
+        "function_id": "support/release.py::push",
+        "caller": [],
+        "callee": [
+            "support\\release.py::call"
+        ],
+        "function_content": "def push(self, *args):\r\n        return self.call('push', args, cwd=self.dir)"
+    },
+    {
+        "function_id": "support/release.py::reset",
+        "caller": [
+            "support\\release.py::clean_checkout"
+        ],
+        "callee": [
+            "support\\release.py::call"
+        ],
+        "function_content": "def reset(self, *args):\r\n        return self.call('reset', args, cwd=self.dir)"
+    },
+    {
+        "function_id": "support/release.py::update",
+        "caller": [],
+        "callee": [
+            "support\\release.py::clone"
+        ],
+        "function_content": "def update(self, *args):\r\n        clone = not os.path.exists(self.dir)\r\n        if clone:\r\n            self.clone(*args)\r\n        return clone"
+    },
+    {
+        "function_id": "support/release.py::clean_checkout",
+        "caller": [],
+        "callee": [
+            "support\\release.py::clean",
+            "support\\release.py::reset",
+            "support\\release.py::checkout"
+        ],
+        "function_content": "def clean_checkout(repo, branch):\r\n    repo.clean('-f', '-d')\r\n    repo.reset('--hard')\r\n    repo.checkout(branch)"
+    },
+    {
+        "function_id": "support/release.py::__call__",
+        "caller": [],
+        "callee": [],
+        "function_content": "def __call__(self, *args, **kwargs):\r\n        kwargs['cwd'] = kwargs.get('cwd', self.cwd)\r\n        check_call(args, **kwargs)"
+    },
+    {
+        "function_id": "support/release.py::create_build_env",
+        "caller": [],
+        "callee": [],
+        "function_content": "def create_build_env():\r\n    \"\"\"Create a build environment.\"\"\"\r\n    class Env:\r\n        pass\r\n    env = Env()\r\n    env.fmt_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))\r\n    env.build_dir = 'build'\r\n    env.fmt_repo = Git(os.path.join(env.build_dir, 'fmt'))\r\n    return env"
+    },
+    {
+        "function_id": "support/python/mkdocstrings_handlers/cxx/__init__.py::__init__",
+        "caller": [
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::__init__"
+        ],
+        "callee": [
+            "support\\docopt.py::parse",
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::__init__"
+        ],
+        "function_content": "def __init__(\r\n        self, config: \"Mapping[str, Any]\", base_dir: Path, **kwargs: Any\r\n    ) -> None:\r\n        super().__init__(**kwargs)\r\n\r\n        self.config = config\r\n        \"\"\"The handler configuration.\"\"\"\r\n        self.base_dir = base_dir\r\n        \"\"\"The base directory of the project.\"\"\"\r\n\r\n        headers = [\r\n            \"args.h\",\r\n            \"base.h\",\r\n            \"chrono.h\",\r\n            \"color.h\",\r\n            \"compile.h\",\r\n            \"format.h\",\r\n            \"os.h\",\r\n            \"ostream.h\",\r\n            \"printf.h\",\r\n            \"ranges.h\",\r\n            \"std.h\",\r\n            \"xchar.h\",\r\n        ]\r\n\r\n        # Run doxygen.\r\n        cmd = [\"doxygen\", \"-\"]\r\n        support_dir = Path(__file__).parents[3]\r\n        top_dir = os.path.dirname(support_dir)\r\n        include_dir = os.path.join(top_dir, \"include\", \"fmt\")\r\n        self._ns2doxyxml: \"dict[str, ET.ElementTree[ET.Element[str]]]\" = {}\r\n        build_dir = os.path.join(top_dir, \"build\")\r\n        os.makedirs(build_dir, exist_ok=True)\r\n        self._doxyxml_dir = os.path.join(build_dir, \"doxyxml\")\r\n        p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=STDOUT)\r\n        _, _ = p.communicate(\r\n            input=r\"\"\"\r\n            PROJECT_NAME     = fmt\r\n            GENERATE_XML     = YES\r\n            GENERATE_LATEX   = NO\r\n            GENERATE_HTML    = NO\r\n            INPUT            = {0}\r\n            XML_OUTPUT       = {1}\r\n            QUIET            = YES\r\n            AUTOLINK_SUPPORT = NO\r\n            MACRO_EXPANSION  = YES\r\n            PREDEFINED       = _WIN32=1 \\\r\n                               __linux__=1 \\\r\n                               FMT_ENABLE_IF(...)= \\\r\n                               FMT_USE_USER_LITERALS=1 \\\r\n                               FMT_USE_ALIAS_TEMPLATES=1 \\\r\n                               FMT_USE_NONTYPE_TEMPLATE_ARGS=1 \\\r\n                               FMT_API= \\\r\n                               \"FMT_BEGIN_NAMESPACE=namespace fmt {{\" \\\r\n                               \"FMT_END_NAMESPACE=}}\" \\\r\n                               \"FMT_DOC=1\"\r\n            \"\"\".format(\r\n                \" \".join([os.path.join(include_dir, h) for h in headers]),\r\n                self._doxyxml_dir,\r\n            ).encode(\"utf-8\")\r\n        )\r\n        if p.returncode != 0:\r\n            raise CalledProcessError(p.returncode, cmd)\r\n\r\n        # Merge all file-level XMLs into one to simplify search.\r\n        self._file_doxyxml: \"ET.ElementTree[ET.Element[str]] | None\" = None\r\n        for h in headers:\r\n            filename = h.replace(\".h\", \"_8h.xml\")\r\n            with open(os.path.join(self._doxyxml_dir, filename)) as f:\r\n                doxyxml = ET.parse(f)\r\n                if self._file_doxyxml is None:\r\n                    self._file_doxyxml = doxyxml\r\n                    continue\r\n                root = self._file_doxyxml.getroot()\r\n                for node in doxyxml.getroot():\r\n                    root.append(node)"
+    },
+    {
+        "function_id": "support/python/mkdocstrings_handlers/cxx/__init__.py::escape_html",
+        "caller": [
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::render_decl",
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::convert_node"
+        ],
+        "callee": [],
+        "function_content": "def escape_html(s: str) -> str:\r\n    return s.replace(\"<\", \"&lt;\")"
+    },
+    {
+        "function_id": "support/python/mkdocstrings_handlers/cxx/__init__.py::convert_node",
+        "caller": [
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::doxyxml2html"
+        ],
+        "callee": [
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::doxyxml2html",
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::escape_html"
+        ],
+        "function_content": "def convert_node(\r\n    node: ET.Element, tag: str, attrs: \"Mapping[str, str] | None\" = None\r\n) -> str:\r\n    if attrs is None:\r\n        attrs = {}\r\n\r\n    out: str = \"<\" + tag\r\n    for key, value in attrs.items():\r\n        out += \" \" + key + '=\"' + value + '\"'\r\n    out += \">\"\r\n    if node.text:\r\n        out += escape_html(node.text)\r\n    out += doxyxml2html(list(node))\r\n    out += \"</\" + tag + \">\"\r\n    if node.tail:\r\n        out += node.tail\r\n    return out"
+    },
+    {
+        "function_id": "support/python/mkdocstrings_handlers/cxx/__init__.py::doxyxml2html",
+        "caller": [
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::render",
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::convert_node"
+        ],
+        "callee": [
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::convert_node"
+        ],
+        "function_content": "def doxyxml2html(nodes: \"list[ET.Element]\"):\r\n    out = \"\"\r\n    for n in nodes:\r\n        tag = tag_map.get(n.tag)\r\n        if tag:\r\n            out += convert_node(n, tag)\r\n            continue\r\n        if n.tag == \"programlisting\" or n.tag == \"verbatim\":\r\n            out += \"<pre>\"\r\n            out += convert_node(n, \"code\", {\"class\": \"language-cpp\"})\r\n            out += \"</pre>\"\r\n            continue\r\n        if n.tag == \"ulink\":\r\n            out += convert_node(n, \"a\", {\"href\": n.attrib[\"url\"]})\r\n            continue\r\n        out += tag_text_map[n.tag]\r\n    return out"
+    },
+    {
+        "function_id": "support/python/mkdocstrings_handlers/cxx/__init__.py::convert_template_params",
+        "caller": [
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::collect_compound",
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::collect"
+        ],
+        "callee": [],
+        "function_content": "def convert_template_params(node: ET.Element) -> \"list[Definition] | None\":\r\n    template_param_list = node.find(\"templateparamlist\")\r\n    if template_param_list is None:\r\n        return None\r\n    params: \"list[Definition]\" = []\r\n    for param_node in template_param_list.findall(\"param\"):\r\n        name = param_node.find(\"declname\")\r\n        if name is not None:\r\n            name = name.text\r\n        if name is None:\r\n            name = \"\"\r\n        param = Definition(name, \"param\")\r\n        param_type = param_node.find(\"type\")\r\n        if param_type is not None:\r\n            param.type = param_type.text\r\n        params.append(param)\r\n    return params"
+    },
+    {
+        "function_id": "support/python/mkdocstrings_handlers/cxx/__init__.py::get_description",
+        "caller": [
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::collect_compound",
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::collect"
+        ],
+        "callee": [],
+        "function_content": "def get_description(node: ET.Element) -> list[ET.Element]:\r\n    return node.findall(\"briefdescription/para\") + node.findall(\r\n        \"detaileddescription/para\"\r\n    )"
+    },
+    {
+        "function_id": "support/python/mkdocstrings_handlers/cxx/__init__.py::normalize_type",
+        "caller": [
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::convert_type",
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::convert_return_type"
+        ],
+        "callee": [],
+        "function_content": "def normalize_type(type_: str) -> str:\r\n    type_ = type_.replace(\"< \", \"<\").replace(\" >\", \">\")\r\n    return type_.replace(\" &\", \"&\").replace(\" *\", \"*\")"
+    },
+    {
+        "function_id": "support/python/mkdocstrings_handlers/cxx/__init__.py::convert_type",
+        "caller": [
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::convert_params",
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::collect"
+        ],
+        "callee": [
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::normalize_type"
+        ],
+        "function_content": "def convert_type(type_: \"ET.Element | None\") -> \"str | None\":\r\n    if type_ is None:\r\n        return None\r\n    result = type_.text if type_.text else \"\"\r\n    for ref in type_:\r\n        if ref.text is None:\r\n            raise ValueError\r\n        result += ref.text\r\n        if ref.tail:\r\n            result += ref.tail\r\n    if type_.tail is None:\r\n        raise ValueError\r\n    result += type_.tail.strip()\r\n    return normalize_type(result)"
+    },
+    {
+        "function_id": "support/python/mkdocstrings_handlers/cxx/__init__.py::convert_params",
+        "caller": [
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::collect_compound",
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::collect"
+        ],
+        "callee": [
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::convert_type"
+        ],
+        "function_content": "def convert_params(func: ET.Element) -> list[Definition]:\r\n    params: \"list[Definition]\" = []\r\n    for p in func.findall(\"param\"):\r\n        declname = p.find(\"declname\")\r\n        if declname is None or declname.text is None:\r\n            raise ValueError\r\n        d = Definition(declname.text, \"param\")\r\n        d.type = convert_type(p.find(\"type\"))\r\n        params.append(d)\r\n    return params"
+    },
+    {
+        "function_id": "support/python/mkdocstrings_handlers/cxx/__init__.py::convert_return_type",
+        "caller": [
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::collect_compound",
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::collect"
+        ],
+        "callee": [
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::normalize_type"
+        ],
+        "function_content": "def convert_return_type(d: Definition, node: ET.Element) -> None:\r\n    d.trailing_return_type = None\r\n    if d.type == \"auto\" or d.type == \"constexpr auto\":\r\n        argsstring = node.find(\"argsstring\")\r\n        if argsstring is None or argsstring.text is None:\r\n            raise ValueError\r\n        parts = argsstring.text.split(\" -> \")\r\n        if len(parts) > 1:\r\n            d.trailing_return_type = normalize_type(parts[1])"
+    },
+    {
+        "function_id": "support/python/mkdocstrings_handlers/cxx/__init__.py::render_param",
+        "caller": [
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::render_decl"
+        ],
+        "callee": [],
+        "function_content": "def render_param(param: Definition) -> str:\r\n    if param.type is None:\r\n        raise ValueError\r\n    return param.type + (f\"&nbsp;{param.name}\" if len(param.name) > 0 else \"\")"
+    },
+    {
+        "function_id": "support/python/mkdocstrings_handlers/cxx/__init__.py::render_decl",
+        "caller": [
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::render"
+        ],
+        "callee": [
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::render_param",
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::escape_html"
+        ],
+        "function_content": "def render_decl(d: Definition) -> str:\r\n    text = \"\"\r\n    if d.id is not None:\r\n        text += f'<a id=\"{d.id}\">\\n'\r\n    text += '<pre><code class=\"language-cpp decl\">'\r\n\r\n    text += \"<div>\"\r\n    if d.template_params is not None:\r\n        text += \"template &lt;\"\r\n        text += \", \".join([render_param(p) for p in d.template_params])\r\n        text += \"&gt;\\n\"\r\n    text += \"</div>\"\r\n\r\n    text += \"<div>\"\r\n    end = \";\"\r\n    if d.kind is None:\r\n        raise ValueError\r\n    if d.kind == \"function\" or d.kind == \"variable\":\r\n        if d.type is None:\r\n            raise ValueError\r\n        text += d.type + \" \" if len(d.type) > 0 else \"\"\r\n    elif d.kind == \"typedef\":\r\n        text += \"using \"\r\n    elif d.kind == \"define\":\r\n        end = \"\"\r\n    else:\r\n        text += d.kind + \" \"\r\n    text += d.name\r\n\r\n    if d.params is not None:\r\n        params = \", \".join([\r\n            (p.type + \" \" if p.type else \"\") + p.name for p in d.params\r\n        ])\r\n        text += \"(\" + escape_html(params) + \")\"\r\n        if d.trailing_return_type:\r\n            text += \" -&NoBreak;>&nbsp;\" + escape_html(d.trailing_return_type)\r\n    elif d.kind == \"typedef\":\r\n        if d.type is None:\r\n            raise ValueError\r\n        text += \" = \" + escape_html(d.type)\r\n\r\n    text += end\r\n    text += \"</div>\"\r\n    text += \"</code></pre>\\n\"\r\n    if d.id is not None:\r\n        text += \"</a>\\n\"\r\n    return text"
+    },
+    {
+        "function_id": "support/python/mkdocstrings_handlers/cxx/__init__.py::collect_compound",
+        "caller": [
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::collect"
+        ],
+        "callee": [
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::convert_params",
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::get_description",
+            "support\\docopt.py::parse",
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::convert_return_type",
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::convert_template_params"
+        ],
+        "function_content": "def collect_compound(self, identifier: str, cls: \"list[ET.Element]\") -> Definition:\r\n        \"\"\"Collect a compound definition such as a struct.\"\"\"\r\n        refid = cls[0].get(\"refid\")\r\n        if refid is None:\r\n            raise ValueError\r\n        path = os.path.join(self._doxyxml_dir, refid + \".xml\")\r\n        with open(path) as f:\r\n            xml = ET.parse(f)\r\n            node = xml.find(\"compounddef\")\r\n            if node is None:\r\n                raise ValueError\r\n            d = Definition(identifier, node=node)\r\n            d.template_params = convert_template_params(node)\r\n            d.desc = get_description(node)\r\n            d.members = []\r\n            for m in node.findall(\r\n                'sectiondef[@kind=\"public-attrib\"]/memberdef'\r\n            ) + node.findall('sectiondef[@kind=\"public-func\"]/memberdef'):\r\n                name = m.find(\"name\")\r\n                if name is None or name.text is None:\r\n                    raise ValueError\r\n                name = name.text\r\n                # Doxygen incorrectly classifies members of private unnamed unions as\r\n                # public members of the containing class.\r\n                if name.endswith(\"_\"):\r\n                    continue\r\n                desc = get_description(m)\r\n                if len(desc) == 0:\r\n                    continue\r\n                kind = m.get(\"kind\")\r\n                member = Definition(name if name else \"\", kind=kind, is_member=True)\r\n                type_ = m.find(\"type\")\r\n                if type_ is None:\r\n                    raise ValueError\r\n                type_text = type_.text\r\n                member.type = type_text if type_text else \"\"\r\n                if kind == \"function\":\r\n                    member.params = convert_params(m)\r\n                    convert_return_type(member, m)\r\n                member.template_params = None\r\n                member.desc = desc\r\n                d.members.append(member)\r\n            return d"
+    },
+    {
+        "function_id": "support/python/mkdocstrings_handlers/cxx/__init__.py::collect",
+        "caller": [],
+        "callee": [
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::collect_compound",
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::convert_params",
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::get_description",
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::convert_type",
+            "support\\docopt.py::parse",
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::convert_return_type",
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::convert_template_params"
+        ],
+        "function_content": "def collect(self, identifier: str, options: \"Mapping[str, Any]\") -> Definition:\r\n        qual_name = \"fmt::\" + identifier\r\n\r\n        param_str = None\r\n        paren = qual_name.find(\"(\")\r\n        if paren > 0:\r\n            qual_name, param_str = qual_name[:paren], qual_name[paren + 1 : -1]\r\n\r\n        colons = qual_name.rfind(\"::\")\r\n        namespace, name = qual_name[:colons], qual_name[colons + 2 :]\r\n\r\n        # Load XML.\r\n        doxyxml = self._ns2doxyxml.get(namespace)\r\n        if doxyxml is None:\r\n            path = f\"namespace{namespace.replace('::', '_1_1')}.xml\"\r\n            with open(os.path.join(self._doxyxml_dir, path)) as f:\r\n                doxyxml = ET.parse(f)\r\n                self._ns2doxyxml[namespace] = doxyxml\r\n\r\n        nodes = doxyxml.findall(f\"compounddef/sectiondef/memberdef/name[.='{name}']/..\")\r\n        if len(nodes) == 0:\r\n            if self._file_doxyxml is None:\r\n                raise ValueError\r\n            nodes = self._file_doxyxml.findall(\r\n                f\"compounddef/sectiondef/memberdef/name[.='{name}']/..\"\r\n            )\r\n        candidates: \"list[str]\" = []\r\n        for node in nodes:\r\n            # Process a function or a typedef.\r\n            params: \"list[Definition] | None\" = None\r\n            d = Definition(name, node=node)\r\n            if d.kind == \"function\":\r\n                params = convert_params(node)\r\n                params_type: \"list[str]\" = []\r\n                for p in params:\r\n                    if p.type is None:\r\n                        raise ValueError\r\n                    else:\r\n                        params_type.append(p.type)\r\n                node_param_str = \", \".join(params_type)\r\n                if param_str and param_str != node_param_str:\r\n                    candidates.append(f\"{name}({node_param_str})\")\r\n                    continue\r\n            elif d.kind == \"define\":\r\n                params = []\r\n                for p in node.findall(\"param\"):\r\n                    defname = p.find(\"defname\")\r\n                    if defname is None or defname.text is None:\r\n                        raise ValueError\r\n                    param = Definition(defname.text, kind=\"param\")\r\n                    param.type = None\r\n                    params.append(param)\r\n            d.type = convert_type(node.find(\"type\"))\r\n            d.template_params = convert_template_params(node)\r\n            d.params = params\r\n            convert_return_type(d, node)\r\n            d.desc = get_description(node)\r\n            return d\r\n\r\n        cls = doxyxml.findall(f\"compounddef/innerclass[.='{qual_name}']\")\r\n        if not cls:\r\n            raise Exception(f\"Cannot find {identifier}. Candidates: {candidates}\")\r\n        return self.collect_compound(identifier, cls)"
+    },
+    {
+        "function_id": "support/python/mkdocstrings_handlers/cxx/__init__.py::render",
+        "caller": [
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::render"
+        ],
+        "callee": [
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::render",
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::doxyxml2html",
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::render_decl"
+        ],
+        "function_content": "def render(\r\n        self,\r\n        data: \"CollectorItem\",\r\n        options: \"HandlerOptions\",\r\n        *,\r\n        locale: \"str | None\" = None,\r\n    ) -> str:\r\n        d = data\r\n        if d.id is not None:\r\n            _ = self.do_heading(Markup(), 0, id=d.id)\r\n        if d.desc is None:\r\n            raise ValueError\r\n        text = '<div class=\"docblock\">\\n'\r\n        text += render_decl(d)\r\n        text += '<div class=\"docblock-desc\">\\n'\r\n        text += doxyxml2html(d.desc)\r\n        if d.members is not None:\r\n            for m in d.members:\r\n                text += self.render(m, options, locale=locale)\r\n        text += \"</div>\\n\"\r\n        text += \"</div>\\n\"\r\n        return text"
+    },
+    {
+        "function_id": "support/python/mkdocstrings_handlers/cxx/__init__.py::get_handler",
+        "caller": [],
+        "callee": [],
+        "function_content": "def get_handler(\r\n    handler_config: \"MutableMapping[str, Any]\", tool_config: \"MkDocsConfig\", **kwargs: Any\r\n) -> CxxHandler:\r\n    \"\"\"Return an instance of `CxxHandler`.\r\n\r\n    Arguments:\r\n        handler_config: The handler configuration.\r\n        tool_config: The tool (SSG) configuration.\r\n    \"\"\"\r\n    base_dir = Path(tool_config.config_file_path or \"./mkdocs.yml\").parent\r\n    return CxxHandler(config=handler_config, base_dir=base_dir, **kwargs)"
+    },
+    {
+        "function_id": "test/c-test.c::fmt_vformat_cstr",
+        "caller": [],
+        "callee": [],
+        "function_content": "static inline int fmt_vformat_cstr(char* buf, size_t size, int result) {\r\n  if (result >= 0 && (size_t)result < size)\r\n    buf[result] = '\\0';\r\n  else if (size > 0)\r\n    buf[size - 1] = '\\0';\r\n  return result;\r\n}",
+        "vul": true,
+        "positive": 0.3348566943633835,
+        "fixed": false,
+        "fixed_time": null
+    },
+    {
+        "function_id": "test/c-test.c::test_types",
+        "caller": [
+            "test\\c-test.c::main"
+        ],
+        "callee": [],
+        "function_content": "void test_types(void) {\r\n  char buf[100];\r\n\r\n  fmt_format_cstr(buf, sizeof(buf), \"{}\", 42);\r\n  ASSERT_STR_EQ(buf, \"42\");\r\n\r\n  fmt_format_cstr(buf, sizeof(buf), \"{}\", 123u);\r\n  ASSERT_STR_EQ(buf, \"123\");\r\n\r\n  fmt_format_cstr(buf, sizeof(buf), \"{}\", (bool)true);\r\n  ASSERT_STR_EQ(buf, \"true\");\r\n\r\n  fmt_format_cstr(buf, sizeof(buf), \"{}\", (char)'x');\r\n  ASSERT_STR_EQ(buf, \"x\");\r\n\r\n  fmt_format_cstr(buf, sizeof(buf), \"{}\", 1.2f);\r\n  ASSERT_STR_EQ(buf, \"1.2\");\r\n\r\n  fmt_format_cstr(buf, sizeof(buf), \"{}\", 3.14159);\r\n  ASSERT_STR_EQ(buf, \"3.14159\");\r\n\r\n  fmt_format_cstr(buf, sizeof(buf), \"{}\", 1.2l);\r\n  ASSERT_STR_EQ(buf, \"1.2\");\r\n\r\n  fmt_format_cstr(buf, sizeof(buf), \"{}\", \"foo\");\r\n  ASSERT_STR_EQ(buf, \"foo\");\r\n\r\n  fmt_format_cstr(buf, sizeof(buf), \"{}\", (void*)0x12345678);\r\n  ASSERT_STR_EQ(buf, \"0x12345678\");\r\n}",
+        "vul": true,
+        "positive": 0.5833967240650049,
+        "fixed": false,
+        "fixed_time": null
+    },
+    {
+        "function_id": "test/c-test.c::test_zero_arguments",
+        "caller": [
+            "test\\c-test.c::main"
+        ],
+        "callee": [],
+        "function_content": "void test_zero_arguments(void) {\r\n  char buf[100];\r\n  int ret = fmt_format_cstr(buf, sizeof(buf), \"No arguments\");\r\n  ASSERT_STR_EQ(buf, \"No arguments\");\r\n}",
+        "vul": false,
+        "positive": 0.3399086803714432,
+        "fixed": true,
+        "fixed_time": "2026-04-06"
+    },
+    {
+        "function_id": "test/c-test.c::test_buffer_size_query",
+        "caller": [
+            "test\\c-test.c::main"
+        ],
+        "callee": [],
+        "function_content": "void test_buffer_size_query(void) {\r\n  int size = fmt_format(NULL, 0, \"Test string: {}\", 42);\r\n  ASSERT_INT_EQ(size, 15);\r\n}",
+        "vul": false,
+        "positive": 0.32598883067449536,
+        "fixed": true,
+        "fixed_time": "2026-04-06"
+    },
+    {
+        "function_id": "test/c-test.c::main",
+        "caller": [],
+        "callee": [
+            "test\\c-test.c::test_types",
+            "test\\c-test.c::test_buffer_size_query",
+            "test\\c-test.c::test_zero_arguments"
+        ],
+        "function_content": "int main(void) {\r\n  printf(\"Running C API tests\\n\");\r\n  test_types();\r\n  test_zero_arguments();\r\n  test_buffer_size_query();\r\n  printf(\"C API tests passed\\n\");\r\n}",
+        "vul": true,
+        "positive": 0.48874679342777216,
+        "fixed": false,
+        "fixed_time": null
+    }
+]

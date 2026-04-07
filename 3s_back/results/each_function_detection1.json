@@ -1,0 +1,1380 @@
+[
+    {
+        "function_id": "LiveCoder/method/run_with_memory.py::_die",
+        "caller": [
+            "LiveCoder\\method\\run_with_memory.py::_read_api_key",
+            "LiveCoder\\method\\run_with_memory.py::main"
+        ],
+        "callee": [],
+        "function_content": "def _die(msg: str, code: int = 2) -> NoReturn:\r\n    print(f\"[ERR] {msg}\", file=sys.stderr)\r\n    raise SystemExit(code)",
+        "function_name": "_die",
+        "file_path": "LiveCoder/method/run_with_memory.py",
+        "language": "py",
+        "caller_num": 2,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.1,
+                "CWE_id": "CWE-252",
+                "description": "错误处理不充分，直接使用 SystemExit 退出可能导致调用方无法捕获异常进行清理工作",
+                "defect_index": 0.2,
+                "repair_rate": 0.85,
+                "impact_degree": 0.4
+            },
+            {
+                "defect_rate": 0.08,
+                "CWE_id": "CWE-209",
+                "description": "错误信息可能包含敏感信息，直接打印到标准错误可能产生信息泄露风险",
+                "defect_index": 0.15,
+                "repair_rate": 0.7,
+                "impact_degree": 0.35
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.175,
+        "avg_defect_level": "安全",
+        "main_defect": {
+            "defect_rate": 0.1,
+            "CWE_id": "CWE-252",
+            "description": "错误处理不充分，直接使用 SystemExit 退出可能导致调用方无法捕获异常进行清理工作",
+            "defect_index": 0.2,
+            "repair_rate": 0.85,
+            "impact_degree": 0.4
+        },
+        "repairs": {
+            "repair_advice": "避免直接抛出 SystemExit 异常退出程序，应改为抛出自定义异常或返回错误状态，使调用方有机会捕获并进行必要的清理和恢复操作，增强错误处理的灵活性和安全性。",
+            "repair_patch": "-    print(f\"[ERR] {msg}\", file=sys.stderr)\n-    raise SystemExit(code)\n+    print(f\"[ERR] {msg}\", file=sys.stderr)\n+    class DieException(Exception):\n+        def __init__(self, message, code):\n+            super().__init__(message)\n+            self.code = code\n+    raise DieException(msg, code)",
+            "repair_code": "def _die(msg: str, code: int = 2) -> None:\n    print(f\"[ERR] {msg}\", file=sys.stderr)\n    class DieException(Exception):\n        def __init__(self, message, code):\n            super().__init__(message)\n            self.code = code\n    raise DieException(msg, code)"
+        }
+    },
+    {
+        "function_id": "LiveCoder/method/run_with_memory.py::_load_yaml",
+        "caller": [
+            "LiveCoder\\method\\run_with_memory.py::main"
+        ],
+        "callee": [],
+        "function_content": "def _load_yaml(path: Path) -> Dict[str, Any]:\r\n    with open(path, \"r\", encoding=\"utf-8\") as f:\r\n        return yaml.safe_load(f) or {}",
+        "function_name": "_load_yaml",
+        "file_path": "LiveCoder/method/run_with_memory.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.3,
+                "CWE_id": "CWE-73",
+                "description": "函数直接从外部文件加载 YAML 文件，可能导致路径遍历攻击，攻击者通过构造路径访问不应被访问的文件。",
+                "defect_index": 0.4,
+                "repair_rate": 0.85,
+                "impact_degree": 0.45
+            },
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-20",
+                "description": "对输入文件路径缺乏充分校验，可能导致不安全或恶意文件被加载，造成潜在安全威胁。",
+                "defect_index": 0.35,
+                "repair_rate": 0.9,
+                "impact_degree": 0.4
+            },
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-703",
+                "description": "函数中未处理文件打开异常，可能导致程序崩溃或未捕获异常被传播。",
+                "defect_index": 0.25,
+                "repair_rate": 0.95,
+                "impact_degree": 0.35
+            },
+            {
+                "defect_rate": 0.1,
+                "CWE_id": "CWE-494",
+                "description": "虽然使用 yaml.safe_load，但如果 YAML 内容被恶意构造可能存在安全风险，需额外限制加载内容类型。",
+                "defect_index": 0.2,
+                "repair_rate": 0.8,
+                "impact_degree": 0.3
+            }
+        ],
+        "defect_num": 4,
+        "avg_defect_index": 0.3,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.3,
+            "CWE_id": "CWE-73",
+            "description": "函数直接从外部文件加载 YAML 文件，可能导致路径遍历攻击，攻击者通过构造路径访问不应被访问的文件。",
+            "defect_index": 0.4,
+            "repair_rate": 0.85,
+            "impact_degree": 0.45
+        },
+        "repairs": {
+            "repair_advice": "为了防止路径遍历攻击，应限制传入的路径只能在预期的安全目录内。通过校验路径的绝对路径是否以该安全目录的路径作为前缀，可以避免攻击者访问不应允许的文件。",
+            "repair_patch": "- with open(path, \"r\", encoding=\"utf-8\") as f:\n-     return yaml.safe_load(f) or {}\n+ base_dir = Path('/safe/config/directory').resolve()\n+ abs_path = path.resolve()\n+ if not str(abs_path).startswith(str(base_dir)):\n+     raise ValueError(\"Access to the specified path is not allowed.\")\n+ with open(abs_path, \"r\", encoding=\"utf-8\") as f:\n+     return yaml.safe_load(f) or {}",
+            "repair_code": "from pathlib import Path\nfrom typing import Dict, Any\nimport yaml\n\ndef _load_yaml(path: Path) -> Dict[str, Any]:\n    base_dir = Path('/safe/config/directory').resolve()\n    abs_path = path.resolve()\n    if not str(abs_path).startswith(str(base_dir)):\n        raise ValueError(\"Access to the specified path is not allowed.\")\n    with open(abs_path, \"r\", encoding=\"utf-8\") as f:\n        return yaml.safe_load(f) or {}"
+        }
+    },
+    {
+        "function_id": "LiveCoder/method/run_with_memory.py::_find_all_tasks",
+        "caller": [
+            "LiveCoder\\method\\run_with_memory.py::main"
+        ],
+        "callee": [],
+        "function_content": "def _find_all_tasks(tasks_dir: Path) -> List[Path]:\r\n    return sorted(tasks_dir.glob(\"*/**/*.yaml\"))",
+        "function_name": "_find_all_tasks",
+        "file_path": "LiveCoder/method/run_with_memory.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-59",
+                "description": "路径遍历漏洞，未限制查找路径可能导致访问非预期文件",
+                "defect_index": 0.4,
+                "repair_rate": 0.85,
+                "impact_degree": 0.35
+            },
+            {
+                "defect_rate": 0.1,
+                "CWE_id": "CWE-276",
+                "description": "路径操作不安全，若tasks_dir未正确验证可能导致不正确的文件匹配",
+                "defect_index": 0.3,
+                "repair_rate": 0.8,
+                "impact_degree": 0.25
+            },
+            {
+                "defect_rate": 0.12,
+                "CWE_id": "CWE-732",
+                "description": "不安全的文件访问，未校验文件内容导致可能处理恶意文件",
+                "defect_index": 0.35,
+                "repair_rate": 0.7,
+                "impact_degree": 0.3
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.35000000000000003,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.15,
+            "CWE_id": "CWE-59",
+            "description": "路径遍历漏洞，未限制查找路径可能导致访问非预期文件",
+            "defect_index": 0.4,
+            "repair_rate": 0.85,
+            "impact_degree": 0.35
+        },
+        "repairs": {
+            "repair_advice": "为了防止路径遍历漏洞，应对传入的 tasks_dir 路径参数进行验证，确保其是预期的目录，并通过限制查找范围避免访问非预期文件路径。",
+            "repair_patch": "- return sorted(tasks_dir.glob(\"*/**/*.yaml\"))\n+ if not tasks_dir.is_dir():\n+     raise ValueError(f\"Invalid tasks_dir path: {tasks_dir}\")\n+ base_path = tasks_dir.resolve()\n+ tasks = []\n+ for path in base_path.rglob(\"*.yaml\"):\n+     # 确保所有匹配文件都在 base_path 下，避免路径遍历\n+     try:\n+         if base_path in path.resolve().parents or base_path == path.resolve():\n+             tasks.append(path)\n+     except RuntimeError:\n+         # 处理符号链接循环等异常，忽略此路径\n+         continue\n+ return sorted(tasks)",
+            "repair_code": "def _find_all_tasks(tasks_dir: Path) -> List[Path]:\n    if not tasks_dir.is_dir():\n        raise ValueError(f\"Invalid tasks_dir path: {tasks_dir}\")\n    base_path = tasks_dir.resolve()\n    tasks = []\n    for path in base_path.rglob(\"*.yaml\"):\n        # 确保所有匹配文件都在 base_path 下，避免路径遍历\n        try:\n            if base_path in path.resolve().parents or base_path == path.resolve():\n                tasks.append(path)\n        except RuntimeError:\n            # 处理符号链接循环等异常，忽略此路径\n            continue\n    return sorted(tasks)"
+        }
+    },
+    {
+        "function_id": "LiveCoder/method/run_with_memory.py::_resolve_generated_repo",
+        "caller": [
+            "LiveCoder\\method\\run_with_memory.py::main"
+        ],
+        "callee": [
+            "LiveCoder\\method\\memory\\success\\Cachetools\\repo\\cachetools\\cache.py::get"
+        ],
+        "function_content": "def _resolve_generated_repo(task: Dict[str, Any], project_name: str) -> Path:\r\n    gen = task.get(\"generated_repository\") or f\"./generation/{project_name}\"\r\n    p = Path(str(gen))\r\n    if p.is_absolute():\r\n        return p\r\n    return (BENCHMARK_ROOT / p).resolve()",
+        "function_name": "_resolve_generated_repo",
+        "file_path": "LiveCoder/method/run_with_memory.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 1,
+        "defects": [
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-22",
+                "description": "路径遍历漏洞：函数接受外部输入作为路径，没有对路径进行充分校验，可能导致访问或泄露不期望的文件路径。",
+                "defect_index": 0.6,
+                "repair_rate": 0.85,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-276",
+                "description": "不安全的路径处理：未验证路径是否安全（如符号链接或跨越父目录），可能导致文件访问权限异常。",
+                "defect_index": 0.55,
+                "repair_rate": 0.8,
+                "impact_degree": 0.4
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.575,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.25,
+            "CWE_id": "CWE-22",
+            "description": "路径遍历漏洞：函数接受外部输入作为路径，没有对路径进行充分校验，可能导致访问或泄露不期望的文件路径。",
+            "defect_index": 0.6,
+            "repair_rate": 0.85,
+            "impact_degree": 0.5
+        },
+        "repairs": {
+            "repair_advice": "为了防止路径遍历漏洞，应确保传入的路径不会跳出预期的基准目录。通过解析路径并判断其是否为基准目录的子路径来进行校验，拒绝恶意构造的路径访问。",
+            "repair_patch": "- if p.is_absolute():\n-     return p\n- return (BENCHMARK_ROOT / p).resolve()\n+ base_path = BENCHMARK_ROOT.resolve()\n+ p = (base_path / p).resolve() if not p.is_absolute() else p.resolve()\n+ try:\n+     p.relative_to(base_path)\n+ except ValueError:\n+     raise ValueError(f\"Resolved path {p} escapes the benchmark root directory\")\n+ return p",
+            "repair_code": "def _resolve_generated_repo(task: Dict[str, Any], project_name: str) -> Path:\n    gen = task.get(\"generated_repository\") or f\"./generation/{project_name}\"\n    p = Path(str(gen))\n    base_path = BENCHMARK_ROOT.resolve()\n    p = (base_path / p).resolve() if not p.is_absolute() else p.resolve()\n    try:\n        p.relative_to(base_path)\n    except ValueError:\n        raise ValueError(f\"Resolved path {p} escapes the benchmark root directory\")\n    return p"
+        }
+    },
+    {
+        "function_id": "LiveCoder/method/run_with_memory.py::_normalize_litellm_model",
+        "caller": [
+            "LiveCoder\\method\\run_with_memory.py::_run_mini"
+        ],
+        "callee": [],
+        "function_content": "def _normalize_litellm_model(model_name: str, api_base: str | None) -> str:\r\n    model_name = (model_name or \"\").strip()\r\n    if not model_name:\r\n        return model_name\r\n    if \"/\" in model_name:\r\n        return model_name\r\n    if api_base:\r\n        return f\"openai/{model_name}\"\r\n    return f\"openai/{model_name}\"",
+        "function_name": "_normalize_litellm_model",
+        "file_path": "LiveCoder/method/run_with_memory.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-20",
+                "description": "未对输入的model_name进行充分验证，可能导致格式不符合预期，进而引发调用异常。",
+                "defect_index": 0.3,
+                "repair_rate": 0.85,
+                "impact_degree": 0.4
+            },
+            {
+                "defect_rate": 0.1,
+                "CWE_id": "CWE-117",
+                "description": "返回的字符串格式固定为openai/{model_name}，未考虑api_base的具体格式，可能导致日志注入或格式错误。",
+                "defect_index": 0.25,
+                "repair_rate": 0.8,
+                "impact_degree": 0.3
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.275,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.15,
+            "CWE_id": "CWE-20",
+            "description": "未对输入的model_name进行充分验证，可能导致格式不符合预期，进而引发调用异常。",
+            "defect_index": 0.3,
+            "repair_rate": 0.85,
+            "impact_degree": 0.4
+        },
+        "repairs": {
+            "repair_advice": "对输入的model_name进行严格的格式验证，确保其不为空且符合预期格式（例如仅包含字母、数字、破折号和下划线等允许字符），以避免由于格式异常导致调用异常或安全问题。",
+            "repair_patch": "- def _normalize_litellm_model(model_name: str, api_base: str | None) -> str:\n-     model_name = (model_name or \"\").strip()\n-     if not model_name:\n-         return model_name\n-     if \"/\" in model_name:\n-         return model_name\n-     if api_base:\n-         return f\"openai/{model_name}\"\n-     return f\"openai/{model_name}\"\n+ import re\n+\n+ def _normalize_litellm_model(model_name: str, api_base: str | None) -> str:\n+     model_name = (model_name or \"\").strip()\n+     if not model_name:\n+         raise ValueError(\"model_name must not be empty\")\n+\n+     # 只允许字母、数字、破折号、下划线和斜杠（路径分隔符）\n+     if not re.match(r'^[a-zA-Z0-9/_-]+$', model_name):\n+         raise ValueError(f\"Invalid model_name format: {model_name}\")\n+\n+     if \"/\" in model_name:\n+         return model_name\n+     if api_base:\n+         return f\"openai/{model_name}\"\n+     return f\"openai/{model_name}\"",
+            "repair_code": "import re\n\ndef _normalize_litellm_model(model_name: str, api_base: str | None) -> str:\n    model_name = (model_name or \"\").strip()\n    if not model_name:\n        raise ValueError(\"model_name must not be empty\")\n\n    # 只允许字母、数字、破折号、下划线和斜杠（路径分隔符）\n    if not re.match(r'^[a-zA-Z0-9/_-]+$', model_name):\n        raise ValueError(f\"Invalid model_name format: {model_name}\")\n\n    if \"/\" in model_name:\n        return model_name\n    if api_base:\n        return f\"openai/{model_name}\"\n    return f\"openai/{model_name}\""
+        }
+    },
+    {
+        "function_id": "LiveCoder/method/run_with_memory.py::_read_api_key",
+        "caller": [
+            "LiveCoder\\method\\run_with_memory.py::main"
+        ],
+        "callee": [
+            "LiveCoder\\method\\run_with_memory.py::_die",
+            "LiveCoder\\method\\memory\\success\\Cachetools\\repo\\cachetools\\cache.py::get"
+        ],
+        "function_content": "def _read_api_key(api_key_env: str, api_key_file: str) -> Optional[str]:\r\n    if api_key_file:\r\n        key_path = Path(api_key_file).expanduser().resolve()\r\n        if not key_path.exists():\r\n            _die(f\"API key file not found: {key_path}\")\r\n        key = key_path.read_text(encoding=\"utf-8\", errors=\"ignore\").strip()\r\n        if not key:\r\n            _die(f\"API key file is empty: {key_path}\")\r\n        return key\r\n    return os.environ.get(api_key_env)",
+        "function_name": "_read_api_key",
+        "file_path": "LiveCoder/method/run_with_memory.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 2,
+        "defects": [
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-200",
+                "description": "API密钥直接读取后未加密或保护，存在敏感信息泄露风险。",
+                "defect_index": 0.45,
+                "repair_rate": 0.85,
+                "impact_degree": 0.6
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-276",
+                "description": "读取文件时未验证文件权限，可能导致非授权用户访问API密钥文件。",
+                "defect_index": 0.3,
+                "repair_rate": 0.8,
+                "impact_degree": 0.55
+            },
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-117",
+                "description": "读取的API密钥中可能包含控制字符，未进行严格的字符校验，可能引发日志注入等问题。",
+                "defect_index": 0.25,
+                "repair_rate": 0.7,
+                "impact_degree": 0.4
+            },
+            {
+                "defect_rate": 0.1,
+                "CWE_id": "CWE-668",
+                "description": "函数对API密钥文件路径未做完整的安全校验，攻击者可能利用符号链接攻击覆盖密钥文件。",
+                "defect_index": 0.2,
+                "repair_rate": 0.6,
+                "impact_degree": 0.35
+            }
+        ],
+        "defect_num": 4,
+        "avg_defect_index": 0.3,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.25,
+            "CWE_id": "CWE-200",
+            "description": "API密钥直接读取后未加密或保护，存在敏感信息泄露风险。",
+            "defect_index": 0.45,
+            "repair_rate": 0.85,
+            "impact_degree": 0.6
+        },
+        "repairs": {
+            "repair_advice": "为了防止敏感的API密钥明文暴露，读取API密钥后应进行加密或使用安全存储和访问机制，例如环境变量加密、密钥管理系统或加密库保护。这里建议最小化明文密钥的处理范围，提示改用安全存储，避免直接返回明文API密钥。",
+            "repair_patch": "- if api_key_file:\n-     key_path = Path(api_key_file).expanduser().resolve()\n-     if not key_path.exists():\n-         _die(f\"API key file not found: {key_path}\")\n-     key = key_path.read_text(encoding=\"utf-8\", errors=\"ignore\").strip()\n-     if not key:\n-         _die(f\"API key file is empty: {key_path}\")\n-     return key\n- return os.environ.get(api_key_env)\n+ # 建议改为从环境变量读取加密后的密钥或者通过安全管理器获取\n+ import base64\n+ from cryptography.fernet import Fernet\n+\n+ def _decrypt_key(enc_key: str, encryption_key: bytes) -> str:\n+     fernet = Fernet(encryption_key)\n+     return fernet.decrypt(base64.b64decode(enc_key)).decode('utf-8')\n+\n+ if api_key_file:\n+     _die(\"Direct reading of API key file is insecure. Use environment variable with encrypted key instead.\")\n+ enc_key = os.environ.get(api_key_env)\n+ if not enc_key:\n+     return None\n+ try:\n+     encryption_key = b'your-fernet-key-must-be-32-byte-base64-url'\n+     return _decrypt_key(enc_key, encryption_key)\n+ except Exception:\n+     _die(\"Failed to decrypt API key. Provide valid encrypted key and encryption key.\")",
+            "repair_code": "def _read_api_key(api_key_env: str, api_key_file: str) -> Optional[str]:\n    # 建议改为从环境变量读取加密后的密钥或者通过安全管理器获取\n    import base64\n    from cryptography.fernet import Fernet\n\n    def _decrypt_key(enc_key: str, encryption_key: bytes) -> str:\n        fernet = Fernet(encryption_key)\n        return fernet.decrypt(base64.b64decode(enc_key)).decode('utf-8')\n\n    if api_key_file:\n        _die(\"Direct reading of API key file is insecure. Use environment variable with encrypted key instead.\")\n    enc_key = os.environ.get(api_key_env)\n    if not enc_key:\n        return None\n    try:\n        encryption_key = b'your-fernet-key-must-be-32-byte-base64-url'\n        return _decrypt_key(enc_key, encryption_key)\n    except Exception:\n        _die(\"Failed to decrypt API key. Provide valid encrypted key and encryption key.\")"
+        }
+    },
+    {
+        "function_id": "LiveCoder/method/run_with_memory.py::_build_task_statement",
+        "caller": [
+            "LiveCoder\\method\\run_with_memory.py::main"
+        ],
+        "callee": [
+            "LiveCoder\\method\\memory\\success\\Cachetools\\repo\\cachetools\\cache.py::get"
+        ],
+        "function_content": "def _build_task_statement(task_yaml: Path, task: Dict[str, Any], failure_analysis: str = \"\") -> str:\r\n    project_name = task_yaml.parent.name\r\n    pkg = (task.get(\"package\") or {}).get(\"name\") or \"<package>\"\r\n    desc = (task.get(\"description\") or \"\").strip()\r\n    suite_cfg = task.get(\"test_suite\") or {}\r\n\r\n    resolved_suite = []\r\n    for k, v in suite_cfg.items():\r\n        if isinstance(v, str) and v.strip():\r\n            clean_v = v.strip()\r\n            if clean_v.startswith(\"./\"):\r\n                clean_v = clean_v[2:]\r\n            \r\n            if clean_v.startswith(\"tests/\"):\r\n                abs_path = BENCHMARK_ROOT / clean_v\r\n                resolved_suite.append(f\"- {k}: {abs_path}\")\r\n            else:\r\n                resolved_suite.append(f\"- {k}: {v}\")\r\n\r\n    tests_hint = \"\\n\".join(resolved_suite)\r\n    if not tests_hint:\r\n        tests_hint = \"(no tests listed)\"\r\n\r\n    lines = [\r\n        f\"You are working inside the generated repository for the benchmark project '{project_name}'.\",\r\n        \"\",\r\n        \"Goal:\",\r\n        f\"- Implement the Python package '{pkg}' so that the benchmark's black-box tests pass.\",\r\n        f\"- Do not modify anything under {BENCHMARK_ROOT}/tests or {BENCHMARK_ROOT}/tasks.\",\r\n        \"\",\r\n        \"CRITICAL INSTRUCTIONS:\",\r\n        f\"- You are strictly FORBIDDEN from reading any files inside '{BENCHMARK_ROOT}/tests/', '{BENCHMARK_ROOT}/repositories/', or '{BENCHMARK_ROOT}/.hidden_repos/' directories.\",\r\n        \"- Accessing these files to reverse-engineer the solution is cheatng and will void your results.\",\r\n        \"- You may run the tests using `pytest` as described below, but you must no inspect the test code itself.\",\r\n        \"\",\r\n        \"Task description (from task YAML):\",\r\n        desc,\r\n        \"\",\r\n        \"How to run the official tests locally while you work:\",\r\n        \"- From this directory, you can run (example):\",\r\n        f\"  PYTHONPATH=$PWD python -m pytest {BENCHMARK_ROOT}/tests/{project_name}/functional_test.py -q\",\r\n        \"\",\r\n        \"Test suites for this task:\",\r\n        tests_hint,\r\n        \"\",\r\n        \"When you believe it's correct, run the main functional suite first.\",\r\n    ]\r\n\r\n    if failure_analysis:\r\n        lines.extend([\r\n            \"\",\r\n            \"==================================================\",\r\n            \"⚠️ PREVIOUS ATTEMPT FAILED. ⚠️\",\r\n            \"Here is the feedback and the reconstructed pseudo-code/logic from the previous attempt's failure:\",\r\n            \"\",\r\n            failure_analysis,\r\n            \"\",\r\n            \"🎯 CRITICAL INSTRUCTION ON HANDLING FAILURES:\",\r\n            \"1. The failure knowledge above is ONLY meant to help you avoid repeating the exact same specific mistakes (e.g., wrong API usage, missed edge cases).\",\r\n            \"2. DO NOT over-focus on these local failures and lose sight of the global architecture. You are still responsible for ensuring the ENTIRE project works correctly.\",\r\n            \"3. Take the lesson, fix the specific bug, but double-check that your overall logic remains coherent and robust.\",\r\n            \"==================================================\",\r\n        ])\r\n\r\n    return \"\\n\".join(lines).strip() + \"\\n\"",
+        "function_name": "_build_task_statement",
+        "file_path": "LiveCoder/method/run_with_memory.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 1,
+        "defects": [
+            {
+                "defect_rate": 0.18,
+                "CWE_id": "CWE-22",
+                "description": "路径拼接时没有充分校验输入，存在路径遍历风险，恶意输入可能导致访问或暴露不应访问的文件路径",
+                "defect_index": 0.45,
+                "repair_rate": 0.95,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.12,
+                "CWE_id": "CWE-200",
+                "description": "在返回的字符串中包含敏感路径信息，可能导致敏感信息泄露",
+                "defect_index": 0.4,
+                "repair_rate": 0.85,
+                "impact_degree": 0.4
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.42500000000000004,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.18,
+            "CWE_id": "CWE-22",
+            "description": "路径拼接时没有充分校验输入，存在路径遍历风险，恶意输入可能导致访问或暴露不应访问的文件路径",
+            "defect_index": 0.45,
+            "repair_rate": 0.95,
+            "impact_degree": 0.5
+        },
+        "repairs": {
+            "repair_advice": "在拼接路径时，应使用Path对象进行标准化处理，并通过resolve()方法获取绝对路径，同时验证生成路径是否以指定根路径开头，以防止路径遍历攻击。",
+            "repair_patch": "         if isinstance(v, str) and v.strip():\n             clean_v = v.strip()\n             if clean_v.startswith(\"./\"):\n                 clean_v = clean_v[2:]\n\n+            abs_path_candidate = (BENCHMARK_ROOT / clean_v).resolve()\n+            benchmark_root_resolved = BENCHMARK_ROOT.resolve()\n+            if str(abs_path_candidate).startswith(str(benchmark_root_resolved)) and clean_v.startswith(\"tests/\"):\n+                abs_path = abs_path_candidate\n+                resolved_suite.append(f\"- {k}: {abs_path}\")\n+            else:\n+                resolved_suite.append(f\"- {k}: {v}\")",
+            "repair_code": "def _build_task_statement(task_yaml: Path, task: Dict[str, Any], failure_analysis: str = \"\") -> str:\n    project_name = task_yaml.parent.name\n    pkg = (task.get(\"package\") or {}).get(\"name\") or \"<package>\"\n    desc = (task.get(\"description\") or \"\").strip()\n    suite_cfg = task.get(\"test_suite\") or {}\n\n    resolved_suite = []\n    for k, v in suite_cfg.items():\n        if isinstance(v, str) and v.strip():\n            clean_v = v.strip()\n            if clean_v.startswith(\"./\"):\n                clean_v = clean_v[2:]\n\n            abs_path_candidate = (BENCHMARK_ROOT / clean_v).resolve()\n            benchmark_root_resolved = BENCHMARK_ROOT.resolve()\n            if str(abs_path_candidate).startswith(str(benchmark_root_resolved)) and clean_v.startswith(\"tests/\"):\n                abs_path = abs_path_candidate\n                resolved_suite.append(f\"- {k}: {abs_path}\")\n            else:\n                resolved_suite.append(f\"- {k}: {v}\")\n\n    tests_hint = \"\\n\".join(resolved_suite)\n    if not tests_hint:\n        tests_hint = \"(no tests listed)\"\n\n    lines = [\n        f\"You are working inside the generated repository for the benchmark project '{project_name}'.\",\n        \"\",\n        \"Goal:\",\n        f\"- Implement the Python package '{pkg}' so that the benchmark's black-box tests pass.\",\n        f\"- Do not modify anything under {BENCHMARK_ROOT}/tests or {BENCHMARK_ROOT}/tasks.\",\n        \"\",\n        \"CRITICAL INSTRUCTIONS:\",\n        f\"- You are strictly FORBIDDEN from reading any files inside '{BENCHMARK_ROOT}/tests/', '{BENCHMARK_ROOT}/repositories/', or '{BENCHMARK_ROOT}/.hidden_repos/' directories.\",\n        \"- Accessing these files to reverse-engineer the solution is cheatng and will void your results.\",\n        \"- You may run the tests using `pytest` as described below, but you must no inspect the test code itself.\",\n        \"\",\n        \"Task description (from task YAML):\",\n        desc,\n        \"\",\n        \"How to run the official tests locally while you work:\",\n        \"- From this directory, you can run (example):\",\n        f\"  PYTHONPATH=$PWD python -m pytest {BENCHMARK_ROOT}/tests/{project_name}/functional_test.py -q\",\n        \"\",\n        \"Test suites for this task:\",\n        tests_hint,\n        \"\",\n        \"When you believe it's correct, run the main functional suite first.\",\n    ]\n\n    if failure_analysis:\n        lines.extend([\n            \"\",\n            \"==================================================\",\n            \"⚠️ PREVIOUS ATTEMPT FAILED. ⚠️\",\n            \"Here is the feedback and the reconstructed pseudo-code/logic from the previous attempt's failure:\",\n            \"\",\n            failure_analysis,\n            \"\",\n            \"🎯 CRITICAL INSTRUCTION ON HANDLING FAILURES:\",\n            \"1. The failure knowledge above is ONLY meant to help you avoid repeating the exact same specific mistakes (e.g., wrong API usage, missed edge cases).\",\n            \"2. DO NOT over-focus on these local failures and lose sight of the global architecture. You are still responsible for ensuring the ENTIRE project works correctly.\",\n            \"3. Take the lesson, fix the specific bug, but double-check that your overall logic remains coherent and robust.\",\n            \"==================================================\",\n        ])\n\n    return \"\\n\".join(lines).strip() + \"\\n\""
+        }
+    },
+    {
+        "function_id": "LiveCoder/method/run_with_memory.py::_run_mini",
+        "caller": [
+            "LiveCoder\\method\\run_with_memory.py::main"
+        ],
+        "callee": [
+            "LiveCoder\\method\\run_with_memory.py::_normalize_litellm_model"
+        ],
+        "function_content": "def _run_mini(\r\n    *,\r\n    cwd: Path,\r\n    task_statement: str,\r\n    model: str,\r\n    live_config: str,\r\n    step_limit: int,\r\n    yolo: bool,\r\n    api_base: str,\r\n    api_key_env: str,\r\n    api_key: str,\r\n    mini_timeout_s: int,\r\n) -> Dict[str, Any]:\r\n    env = os.environ.copy()\r\n    env[api_key_env] = api_key\r\n    env.setdefault(\"OPENAI_API_KEY\", api_key)\r\n    env.setdefault(\"OPENAI_BASE_URL\", api_base)\r\n    env.setdefault(\"OPENAI_API_BASE\", api_base)\r\n    env.setdefault(\"MSWEA_COST_TRACKING\", \"ignore_errors\")\r\n    env.setdefault(\"MSWEA_CONFIGURED\", \"true\")\r\n\r\n    litellm_model = _normalize_litellm_model(model, api_base)\r\n    env.setdefault(\"MSWEA_MODEL_NAME\", litellm_model)\r\n    cmd: List[str] = [\r\n        \"mini\",\r\n        \"--model\", litellm_model,\r\n        \"--model-class\", \"minisweagent.models.litellm_textbased_model.LitellmTextbasedModel\",\r\n        \"--task\", task_statement,\r\n        \"--config\", live_config,\r\n        \"--config\", f\"agent.step_limit={step_limit}\",\r\n        \"--config\", \"agent.total_cost_limit=100.0\",\r\n        \"--config\", \"agent.confirm_exit=False\", \r\n        \"--config\", str(ROOT / \"method\" / \"config\" / \"regex_fix.yaml\"),\r\n    ]\r\n    if yolo:\r\n        cmd.append(\"--yolo\")\r\n\r\n    started = time.time()\r\n    try:\r\n        subprocess.run(cmd, cwd=str(cwd), env=env, check=True, timeout=(mini_timeout_s or None))\r\n        return {\"ok\": True, \"elapsed_s\": round(time.time() - started, 3), \"model\": litellm_model, \"error\": \"\"}\r\n    except subprocess.TimeoutExpired:\r\n        return {\"ok\": False, \"elapsed_s\": round(time.time() - started, 3), \"model\": litellm_model, \"error\": \"timeout\"}\r\n    except subprocess.CalledProcessError as e:\r\n        return {\r\n            \"ok\": False,\r\n            \"elapsed_s\": round(time.time() - started, 3),\r\n            \"model\": litellm_model,\r\n            \"error\": f\"exit={e.returncode}\",\r\n        }",
+        "function_name": "_run_mini",
+        "file_path": "LiveCoder/method/run_with_memory.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 1,
+        "defects": [
+            {
+                "defect_rate": 0.45,
+                "CWE_id": "CWE-78",
+                "description": "函数调用subprocess.run执行命令时，命令参数来自外部输入，存在命令注入风险。",
+                "defect_index": 0.75,
+                "repair_rate": 0.85,
+                "impact_degree": 0.65
+            },
+            {
+                "defect_rate": 0.28,
+                "CWE_id": "CWE-254",
+                "description": "API key通过环境变量传递，未对敏感信息进行额外保护，可能导致密钥泄露。",
+                "defect_index": 0.5,
+                "repair_rate": 0.9,
+                "impact_degree": 0.55
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-120",
+                "description": "使用字符串拼接构造命令参数，未对参数内容进行充分验证，可能导致不安全的输入处理。",
+                "defect_index": 0.45,
+                "repair_rate": 0.88,
+                "impact_degree": 0.4
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.5666666666666667,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.45,
+            "CWE_id": "CWE-78",
+            "description": "函数调用subprocess.run执行命令时，命令参数来自外部输入，存在命令注入风险。",
+            "defect_index": 0.75,
+            "repair_rate": 0.85,
+            "impact_degree": 0.65
+        },
+        "repairs": {
+            "repair_advice": "修复该函数的CWE-78命令注入漏洞，关键是避免将外部输入直接用于命令行字符串拼接或shell执行。现有代码已经使用列表形式传递参数给subprocess.run，避免了shell=True带来的注入风险。但task_statement、live_config等参数直接来自外部输入，应做严格校验或安全转义。如果无法严格限制输入内容，建议移除或替换这些不安全参数，或者改为使用环境变量传递。此处修复建议主要是明确禁止shell=True、保持使用参数列表形式调用subprocess.run，并对关键输入进行额外的安全校验和清理，避免特殊字符导致命令注入风险。",
+            "repair_patch": "-    cmd: List[str] = [\n-        \"mini\",\n-        \"--model\", litellm_model,\n-        \"--model-class\", \"minisweagent.models.litellm_textbased_model.LitellmTextbasedModel\",\n-        \"--task\", task_statement,\n-        \"--config\", live_config,\n-        \"--config\", f\"agent.step_limit={step_limit}\",\n-        \"--config\", \"agent.total_cost_limit=100.0\",\n-        \"--config\", \"agent.confirm_exit=False\", \n-        \"--config\", str(ROOT / \"method\" / \"config\" / \"regex_fix.yaml\"),\n-    ]\n+    def _sanitize_arg(arg: str) -> str:\n+        # 允许的字符集，只允许字母、数字、部分安全符号，避免命令注入\n+        import re\n+        pattern = re.compile(r'^[a-zA-Z0-9_\\-\\.\\=/:]+$')\n+        if not pattern.match(arg):\n+            raise ValueError(f\"Unsafe characters detected in argument: {arg}\")\n+        return arg\n+\n+    safe_task_statement = _sanitize_arg(task_statement)\n+    safe_live_config = _sanitize_arg(live_config)\n+\n+    cmd: List[str] = [\n+        \"mini\",\n+        \"--model\", litellm_model,\n+        \"--model-class\", \"minisweagent.models.litellm_textbased_model.LitellmTextbasedModel\",\n+        \"--task\", safe_task_statement,\n+        \"--config\", safe_live_config,\n+        \"--config\", f\"agent.step_limit={step_limit}\",\n+        \"--config\", \"agent.total_cost_limit=100.0\",\n+        \"--config\", \"agent.confirm_exit=False\", \n+        \"--config\", str(ROOT / \"method\" / \"config\" / \"regex_fix.yaml\"),\n+    ]\n+    if yolo:\n+        cmd.append(\"--yolo\")\n-\n-    started = time.time()\n-    try:\n-        subprocess.run(cmd, cwd=str(cwd), env=env, check=True, timeout=(mini_timeout_s or None))\n-        return {\"ok\": True, \"elapsed_s\": round(time.time() - started, 3), \"model\": litellm_model, \"error\": \"\"}\n-    except subprocess.TimeoutExpired:\n-        return {\"ok\": False, \"elapsed_s\": round(time.time() - started, 3), \"model\": litellm_model, \"error\": \"timeout\"}\n-    except subprocess.CalledProcessError as e:\n-        return {\n-            \"ok\": False,\n-            \"elapsed_s\": round(time.time() - started, 3),\n-            \"model\": litellm_model,\n-            \"error\": f\"exit={e.returncode}\",\n-        }\n+    started = time.time()\n+    try:\n+        # 必须保持 shell=False（默认），保证命令注入风险最小\n+        subprocess.run(cmd, cwd=str(cwd), env=env, check=True, timeout=(mini_timeout_s or None))\n+        return {\"ok\": True, \"elapsed_s\": round(time.time() - started, 3), \"model\": litellm_model, \"error\": \"\"}\n+    except subprocess.TimeoutExpired:\n+        return {\"ok\": False, \"elapsed_s\": round(time.time() - started, 3), \"model\": litellm_model, \"error\": \"timeout\"}\n+    except subprocess.CalledProcessError as e:\n+        return {\n+            \"ok\": False,\n+            \"elapsed_s\": round(time.time() - started, 3),\n+            \"model\": litellm_model,\n+            \"error\": f\"exit={e.returncode}\",\n+        }",
+            "repair_code": "def _run_mini(\n    *,\n    cwd: Path,\n    task_statement: str,\n    model: str,\n    live_config: str,\n    step_limit: int,\n    yolo: bool,\n    api_base: str,\n    api_key_env: str,\n    api_key: str,\n    mini_timeout_s: int,\n) -> Dict[str, Any]:\n    env = os.environ.copy()\n    env[api_key_env] = api_key\n    env.setdefault(\"OPENAI_API_KEY\", api_key)\n    env.setdefault(\"OPENAI_BASE_URL\", api_base)\n    env.setdefault(\"OPENAI_API_BASE\", api_base)\n    env.setdefault(\"MSWEA_COST_TRACKING\", \"ignore_errors\")\n    env.setdefault(\"MSWEA_CONFIGURED\", \"true\")\n\n    litellm_model = _normalize_litellm_model(model, api_base)\n    env.setdefault(\"MSWEA_MODEL_NAME\", litellm_model)\n\n    def _sanitize_arg(arg: str) -> str:\n        # 允许的字符集，只允许字母、数字、部分安全符号，避免命令注入\n        import re\n        pattern = re.compile(r'^[a-zA-Z0-9_\\-\\.\\=/:]+$')\n        if not pattern.match(arg):\n            raise ValueError(f\"Unsafe characters detected in argument: {arg}\")\n        return arg\n\n    safe_task_statement = _sanitize_arg(task_statement)\n    safe_live_config = _sanitize_arg(live_config)\n\n    cmd: List[str] = [\n        \"mini\",\n        \"--model\", litellm_model,\n        \"--model-class\", \"minisweagent.models.litellm_textbased_model.LitellmTextbasedModel\",\n        \"--task\", safe_task_statement,\n        \"--config\", safe_live_config,\n        \"--config\", f\"agent.step_limit={step_limit}\",\n        \"--config\", \"agent.total_cost_limit=100.0\",\n        \"--config\", \"agent.confirm_exit=False\", \n        \"--config\", str(ROOT / \"method\" / \"config\" / \"regex_fix.yaml\"),\n    ]\n    if yolo:\n        cmd.append(\"--yolo\")\n\n    started = time.time()\n    try:\n        # 必须保持 shell=False（默认），保证命令注入风险最小\n        subprocess.run(cmd, cwd=str(cwd), env=env, check=True, timeout=(mini_timeout_s or None))\n        return {\"ok\": True, \"elapsed_s\": round(time.time() - started, 3), \"model\": litellm_model, \"error\": \"\"}\n    except subprocess.TimeoutExpired:\n        return {\"ok\": False, \"elapsed_s\": round(time.time() - started, 3), \"model\": litellm_model, \"error\": \"timeout\"}\n    except subprocess.CalledProcessError as e:\n        return {\n            \"ok\": False,\n            \"elapsed_s\": round(time.time() - started, 3),\n            \"model\": litellm_model,\n            \"error\": f\"exit={e.returncode}\",\n        }"
+        }
+    },
+    {
+        "function_id": "LiveCoder/method/run_with_memory.py::_run_eval",
+        "caller": [
+            "LiveCoder\\method\\run_with_memory.py::main"
+        ],
+        "callee": [],
+        "function_content": "def _run_eval(task_yaml: Path) -> Dict[str, Any]:\r\n    cmd = [\r\n        sys.executable,\r\n        \"-m\", \"evaluation.run_benchmark\",\r\n        \"--task\", str(task_yaml.relative_to(BENCHMARK_ROOT)),\r\n        \"--skip-generation\",\r\n    ]\r\n    started = time.time()\r\n    try:\r\n        subprocess.run(cmd, cwd=str(BENCHMARK_ROOT), check=True)\r\n        return {\"ok\": True, \"elapsed_s\": round(time.time() - started, 3), \"error\": \"\"}\r\n    except subprocess.CalledProcessError as e:\r\n        return {\"ok\": False, \"elapsed_s\": round(time.time() - started, 3), \"error\": f\"exit={e.returncode}\"}",
+        "function_name": "_run_eval",
+        "file_path": "LiveCoder/method/run_with_memory.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.3,
+                "CWE_id": "CWE-78",
+                "description": "使用subprocess.run执行shell命令时，如果参数来源未充分验证，可能导致命令注入风险",
+                "defect_index": 0.55,
+                "repair_rate": 0.95,
+                "impact_degree": 0.4
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-276",
+                "description": "没有对传入的task_yaml路径参数做充分的安全验证，可能导致目录遍历或访问了不安全的文件",
+                "defect_index": 0.45,
+                "repair_rate": 0.9,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-397",
+                "description": "捕获异常后仅返回错误码，未进行详细错误处理或日志记录，可能导致故障排查困难",
+                "defect_index": 0.3,
+                "repair_rate": 0.9,
+                "impact_degree": 0.3
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.43333333333333335,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.3,
+            "CWE_id": "CWE-78",
+            "description": "使用subprocess.run执行shell命令时，如果参数来源未充分验证，可能导致命令注入风险",
+            "defect_index": 0.55,
+            "repair_rate": 0.95,
+            "impact_degree": 0.4
+        },
+        "repairs": {
+            "repair_advice": "为了防止命令注入风险，需确保传递给 subprocess.run 的参数不包含用户可控的未验证内容。这里通过限定 task_yaml 必须是 BENCHMARK_ROOT 子路径下的有效文件，且使用列表参数调用 subprocess.run 避免 shell=True，确保执行环境安全。",
+            "repair_patch": "- cmd = [\n-     sys.executable,\n-     \"-m\", \"evaluation.run_benchmark\",\n-     \"--task\", str(task_yaml.relative_to(BENCHMARK_ROOT)),\n-     \"--skip-generation\",\n- ]\n+ if not (task_yaml.is_file() and BENCHMARK_ROOT in task_yaml.parents):\n+     raise ValueError('Invalid task_yaml path')\n+ cmd = [\n+     sys.executable,\n+     \"-m\", \"evaluation.run_benchmark\",\n+     \"--task\", str(task_yaml.relative_to(BENCHMARK_ROOT)),\n+     \"--skip-generation\",\n+ ]",
+            "repair_code": "def _run_eval(task_yaml: Path) -> Dict[str, Any]:\n    if not (task_yaml.is_file() and BENCHMARK_ROOT in task_yaml.parents):\n        raise ValueError('Invalid task_yaml path')\n    cmd = [\n        sys.executable,\n        \"-m\", \"evaluation.run_benchmark\",\n        \"--task\", str(task_yaml.relative_to(BENCHMARK_ROOT)),\n        \"--skip-generation\",\n    ]\n    started = time.time()\n    try:\n        subprocess.run(cmd, cwd=str(BENCHMARK_ROOT), check=True)\n        return {\"ok\": True, \"elapsed_s\": round(time.time() - started, 3), \"error\": \"\"}\n    except subprocess.CalledProcessError as e:\n        return {\"ok\": False, \"elapsed_s\": round(time.time() - started, 3), \"error\": f\"exit={e.returncode}\"}"
+        }
+    },
+    {
+        "function_id": "LiveCoder/method/run_with_memory.py::get_best_score",
+        "caller": [
+            "LiveCoder\\method\\run_with_memory.py::main"
+        ],
+        "callee": [
+            "LiveCoder\\method\\memory\\success\\Cachetools\\repo\\cachetools\\cache.py::get"
+        ],
+        "function_content": "def get_best_score(project_name: str) -> float:\r\n    meta_path = SUCCESS_DIR / project_name / \"metadata.json\"\r\n    if meta_path.exists():\r\n        try:\r\n            data = json.loads(meta_path.read_text())\r\n            # Could be just {\"functional_score\":...} or full object\r\n            return float(data.get(\"functional_score\", 1.0))\r\n        except Exception:\r\n            pass\r\n\r\n            \r\n    fail_meta = FAILURE_DIR / project_name / \"metadata.json\"\r\n    if fail_meta.exists():\r\n        try:\r\n            return float(json.loads(fail_meta.read_text())[\"best_score\"])\r\n        except Exception:\r\n            pass\r\n            \r\n    return -1.0",
+        "function_name": "get_best_score",
+        "file_path": "LiveCoder/method/run_with_memory.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 1,
+        "defects": [
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-253",
+                "description": "异常捕获使用了宽泛的Exception，可能掩盖具体错误，导致错误无法被及时发现和处理。",
+                "defect_index": 0.45,
+                "repair_rate": 0.85,
+                "impact_degree": 0.4
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-434",
+                "description": "直接从外部文件读取并转换数据为float，缺乏数据有效性和边界检查，存在潜在的输入验证不足漏洞。",
+                "defect_index": 0.55,
+                "repair_rate": 0.8,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-377",
+                "description": "返回默认分数1.0或-1.0未明确区分有效数据与异常情况，可能导致调用者误判，影响程序流程。",
+                "defect_index": 0.35,
+                "repair_rate": 0.7,
+                "impact_degree": 0.3
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.45,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.25,
+            "CWE_id": "CWE-253",
+            "description": "异常捕获使用了宽泛的Exception，可能掩盖具体错误，导致错误无法被及时发现和处理。",
+            "defect_index": 0.45,
+            "repair_rate": 0.85,
+            "impact_degree": 0.4
+        },
+        "repairs": {
+            "repair_advice": "避免使用宽泛的Exception进行捕获，应捕获具体的异常类型如FileNotFoundError、json.JSONDecodeError和KeyError，以便更准确地处理异常和快速定位问题。",
+            "repair_patch": "-        try:\n-            data = json.loads(meta_path.read_text())\n-            # Could be just {\"functional_score\":...} or full object\n-            return float(data.get(\"functional_score\", 1.0))\n-        except Exception:\n-            pass\n+        try:\n+            data = json.loads(meta_path.read_text())\n+            return float(data.get(\"functional_score\", 1.0))\n+        except (FileNotFoundError, json.JSONDecodeError, KeyError, ValueError):\n+            pass\n\n-        try:\n-            return float(json.loads(fail_meta.read_text())[\"best_score\"])\n-        except Exception:\n-            pass\n+        try:\n+            return float(json.loads(fail_meta.read_text())[\"best_score\"])\n+        except (FileNotFoundError, json.JSONDecodeError, KeyError, ValueError):\n+            pass",
+            "repair_code": "def get_best_score(project_name: str) -> float:\n    meta_path = SUCCESS_DIR / project_name / \"metadata.json\"\n    if meta_path.exists():\n        try:\n            data = json.loads(meta_path.read_text())\n            return float(data.get(\"functional_score\", 1.0))\n        except (FileNotFoundError, json.JSONDecodeError, KeyError, ValueError):\n            pass\n\n    fail_meta = FAILURE_DIR / project_name / \"metadata.json\"\n    if fail_meta.exists():\n        try:\n            return float(json.loads(fail_meta.read_text())[\"best_score\"])\n        except (FileNotFoundError, json.JSONDecodeError, KeyError, ValueError):\n            pass\n\n    return -1.0"
+        }
+    },
+    {
+        "function_id": "LiveCoder/method/run_with_memory.py::analyze_success_with_llm",
+        "caller": [
+            "LiveCoder\\method\\run_with_memory.py::main"
+        ],
+        "callee": [],
+        "function_content": "def analyze_success_with_llm(project_name: str, diff_content: str, api_base: str, api_key: str, model_name: str) -> str:\r\n    client_kwargs = {}\r\n    if api_base: client_kwargs[\"base_url\"] = api_base\r\n    if api_key: client_kwargs[\"api_key\"] = api_key\r\n    from openai import OpenAI\r\n    client = OpenAI(**client_kwargs)\r\n    \r\n    prompt = f\"\"\"The test suite for project '{project_name}' succeeded totally!\r\nHere is the diff of what was changed:\r\n{diff_content[-15000:]}\r\n\r\nPlease analyze the successful changes and extract a Success Knowledge entry in EXACTLY this format:\r\n# Success Knowledge entry ({project_name})\r\nAttempt: [Attempt Number]\r\nFunctional score: [Score]\r\nTask summary:\r\n- [Summary]\r\nValidated repository-level signals:\r\n- [Signals]\r\nValidated functional signals:\r\n- [Signals]\r\nCarry-over signals for later attempts:\r\n- [Signals]\r\n\"\"\"\r\n    real_model = model_name.replace(\"openai/\", \"\")\r\n    try:\r\n        print(f\"[{project_name}] Calling LLM for success knowledge extraction...\")\r\n        resp = client.chat.completions.create(\r\n            model=real_model,\r\n            messages=[\r\n                {\"role\": \"system\", \"content\": \"You are an expert Python developer. Extract exact detailed success knowledge according to the required format without any other conversation text.\"},\r\n                {\"role\": \"user\", \"content\": prompt}\r\n            ],\r\n            temperature=0.2\r\n        )\r\n        return resp.choices[0].message.content or \"\"\r\n    except Exception as e:\r\n        return f\"Failed to get LLM analysis: {e}\"",
+        "function_name": "analyze_success_with_llm",
+        "file_path": "LiveCoder/method/run_with_memory.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-522",
+                "description": "API密钥直接通过参数传递且未加密存储，存在泄露风险",
+                "defect_index": 0.5,
+                "repair_rate": 0.95,
+                "impact_degree": 0.6
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-117",
+                "description": "异常信息直接返回给调用者，可能导致敏感信息泄露",
+                "defect_index": 0.45,
+                "repair_rate": 0.9,
+                "impact_degree": 0.55
+            },
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-78",
+                "description": "未对diff_content的内容进行过滤或校验，可能导致注入风险或接口错误",
+                "defect_index": 0.4,
+                "repair_rate": 0.8,
+                "impact_degree": 0.4
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.45,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.25,
+            "CWE_id": "CWE-522",
+            "description": "API密钥直接通过参数传递且未加密存储，存在泄露风险",
+            "defect_index": 0.5,
+            "repair_rate": 0.95,
+            "impact_degree": 0.6
+        },
+        "repairs": {
+            "repair_advice": "避免直接通过函数参数传递未加密的 API 密钥，建议从安全存储（如环境变量或加密配置文件）中读取密钥，降低泄露风险。同时，不应在代码中直接输出或打印密钥。",
+            "repair_patch": "- def analyze_success_with_llm(project_name: str, diff_content: str, api_base: str, api_key: str, model_name: str) -> str:\n+ import os\n+ def analyze_success_with_llm(project_name: str, diff_content: str, api_base: str, api_key: str = None, model_name: str = \"\") -> str:\n+     # 从环境变量安全获取 API Key，若未传入则尝试从环境变量获取\n+     if api_key is None:\n+         api_key = os.getenv('OPENAI_API_KEY', '')\n+     client_kwargs = {}\n+     if api_base: client_kwargs[\"base_url\"] = api_base\n+     if api_key: client_kwargs[\"api_key\"] = api_key\n+     from openai import OpenAI\n+     client = OpenAI(**client_kwargs)\n-     prompt = f\"\"\"The test suite for project '{project_name}' succeeded totally!\n- Here is the diff of what was changed:\n- {diff_content[-15000:]}\n-\n- Please analyze the successful changes and extract a Success Knowledge entry in EXACTLY this format:\n- # Success Knowledge entry ({project_name})\n- Attempt: [Attempt Number]\n- Functional score: [Score]\n- Task summary:\n- [Summary]\n- Validated repository-level signals:\n- [Signals]\n- Validated functional signals:\n- [Signals]\n- Carry-over signals for later attempts:\n- [Signals]\n- \"\"\"\n+    # 避免在日志或其他输出中打印 api_key\n+    prompt = f\"\"\"The test suite for project '{project_name}' succeeded totally!\n+Here is the diff of what was changed:\n+{diff_content[-15000:]}\n+\n+Please analyze the successful changes and extract a Success Knowledge entry in EXACTLY this format:\n+# Success Knowledge entry ({project_name})\n+Attempt: [Attempt Number]\n+Functional score: [Score]\n+Task summary:\n+- [Summary]\n+Validated repository-level signals:\n+- [Signals]\n+Validated functional signals:\n+- [Signals]\n+Carry-over signals for later attempts:\n+- [Signals]\n+\"\"\"\n-     real_model = model_name.replace(\"openai/\", \"\")\n+    real_model = model_name.replace(\"openai/\", \"\")\n-     try:\n-         print(f\"[{project_name}] Calling LLM for success knowledge extraction...\")\n-         resp = client.chat.completions.create(\n-             model=real_model,\n-             messages=[\n-                 {\"role\": \"system\", \"content\": \"You are an expert Python developer. Extract exact detailed success knowledge according to the required format without any other conversation text.\"},\n-                 {\"role\": \"user\", \"content\": prompt}\n-             ],\n-             temperature=0.2\n-         )\n-         return resp.choices[0].message.content or \"\"\n-     except Exception as e:\n-         return f\"Failed to get LLM analysis: {e}\"\n+    try:\n+        print(f\"[{project_name}] Calling LLM for success knowledge extraction...\")\n+        resp = client.chat.completions.create(\n+            model=real_model,\n+            messages=[\n+                {\"role\": \"system\", \"content\": \"You are an expert Python developer. Extract exact detailed success knowledge according to the required format without any other conversation text.\"},\n+                {\"role\": \"user\", \"content\": prompt}\n+            ],\n+            temperature=0.2\n+        )\n+        return resp.choices[0].message.content or \"\"\n+    except Exception as e:\n+        return f\"Failed to get LLM analysis: {e}\"\n",
+            "repair_code": "import os\n\ndef analyze_success_with_llm(project_name: str, diff_content: str, api_base: str, api_key: str = None, model_name: str = \"\") -> str:\n    # 从环境变量安全获取 API Key，若未传入则尝试从环境变量获取\n    if api_key is None:\n        api_key = os.getenv('OPENAI_API_KEY', '')\n    client_kwargs = {}\n    if api_base: client_kwargs[\"base_url\"] = api_base\n    if api_key: client_kwargs[\"api_key\"] = api_key\n    from openai import OpenAI\n    client = OpenAI(**client_kwargs)\n\n    # 避免在日志或其他输出中打印 api_key\n    prompt = f\"\"\"The test suite for project '{project_name}' succeeded totally!\nHere is the diff of what was changed:\n{diff_content[-15000:]}\n\nPlease analyze the successful changes and extract a Success Knowledge entry in EXACTLY this format:\n# Success Knowledge entry ({project_name})\nAttempt: [Attempt Number]\nFunctional score: [Score]\nTask summary:\n- [Summary]\nValidated repository-level signals:\n- [Signals]\nValidated functional signals:\n- [Signals]\nCarry-over signals for later attempts:\n- [Signals]\n\"\"\"\n\n    real_model = model_name.replace(\"openai/\", \"\")\n    try:\n        print(f\"[{project_name}] Calling LLM for success knowledge extraction...\")\n        resp = client.chat.completions.create(\n            model=real_model,\n            messages=[\n                {\"role\": \"system\", \"content\": \"You are an expert Python developer. Extract exact detailed success knowledge according to the required format without any other conversation text.\"},\n                {\"role\": \"user\", \"content\": prompt}\n            ],\n            temperature=0.2\n        )\n        return resp.choices[0].message.content or \"\"\n    except Exception as e:\n        return f\"Failed to get LLM analysis: {e}\""
+        }
+    },
+    {
+        "function_id": "LiveCoder/method/run_with_memory.py::save_success_knowledge",
+        "caller": [
+            "LiveCoder\\method\\run_with_memory.py::main"
+        ],
+        "callee": [],
+        "function_content": "def save_success_knowledge(project_name: str, generated_repo: Path, scores: Dict[str, Any], analysis: str = \"\"):\r\n    proj_success = SUCCESS_DIR / project_name\r\n    proj_success.mkdir(parents=True, exist_ok=True)\r\n    meta_path = proj_success / \"metadata.json\"\r\n    \r\n    meta_path.write_text(json.dumps(scores, indent=2))\r\n    \r\n    if analysis:\r\n        analysis_path = proj_success / \"analysis.txt\"\r\n        analysis_path.write_text(analysis, encoding=\"utf-8\")\r\n        \r\n    repo_copy = proj_success / \"repo\"\r\n    if repo_copy.exists():\r\n        shutil.rmtree(repo_copy)\r\n    shutil.copytree(generated_repo, repo_copy, symlinks=False, ignore_dangling_symlinks=True)\r\n    \r\n    # Cleaning up FAILURE knowledge if we reached success\r\n    proj_fail = FAILURE_DIR / project_name\r\n    if proj_fail.exists():\r\n        print(f\"[{project_name}] Promote to SUCCESS, removing FAILURE knowledge.\")\r\n        shutil.rmtree(proj_fail, ignore_errors=True)",
+        "function_name": "save_success_knowledge",
+        "file_path": "LiveCoder/method/run_with_memory.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.3,
+                "CWE_id": "CWE-22",
+                "description": "对project_name参数未做安全校验，存在路径遍历风险，攻击者可构造project_name覆盖任意文件路径。",
+                "defect_index": 0.65,
+                "repair_rate": 0.85,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-703",
+                "description": "对shutil.rmtree和shutil.copytree操作未捕获异常，可能导致程序崩溃或数据未完整写入。",
+                "defect_index": 0.5,
+                "repair_rate": 0.75,
+                "impact_degree": 0.4
+            },
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-276",
+                "description": "文件写入操作未考虑并发问题，存在竞态条件风险，可能导致数据覆盖或损坏。",
+                "defect_index": 0.4,
+                "repair_rate": 0.7,
+                "impact_degree": 0.35
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.5166666666666667,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.3,
+            "CWE_id": "CWE-22",
+            "description": "对project_name参数未做安全校验，存在路径遍历风险，攻击者可构造project_name覆盖任意文件路径。",
+            "defect_index": 0.65,
+            "repair_rate": 0.85,
+            "impact_degree": 0.5
+        },
+        "repairs": {
+            "repair_advice": "对传入的 project_name 参数进行白名单式校验或过滤不安全字符，防止路径遍历攻击。可以只允许字母、数字、下划线和短横线，且禁止使用路径分隔符。同时使用 Path 的 resolve 方法校验路径是否在预期的安全目录下。",
+            "repair_patch": "- def save_success_knowledge(project_name: str, generated_repo: Path, scores: Dict[str, Any], analysis: str = \"\"):\n-     proj_success = SUCCESS_DIR / project_name\n+ import re\n+ def is_safe_project_name(name: str) -> bool:\n+     # 只允许字母数字，-和_，长度限制\n+     return bool(re.fullmatch(r'[A-Za-z0-9_-]+', name))\n+\n+ def save_success_knowledge(project_name: str, generated_repo: Path, scores: Dict[str, Any], analysis: str = \"\"):\n+     if not is_safe_project_name(project_name):\n+         raise ValueError(f\"Invalid project_name: {project_name}\")\n+\n+     proj_success = (SUCCESS_DIR / project_name).resolve()\n+     if not str(proj_success).startswith(str(SUCCESS_DIR.resolve())):\n+         raise ValueError(\"project_name leads to path traversal outside SUCCESS_DIR\")\n+    \n-     proj_success.mkdir(parents=True, exist_ok=True)\n+     proj_success.mkdir(parents=True, exist_ok=True)\n-     meta_path = proj_success / \"metadata.json\"\n-     \n-     meta_path.write_text(json.dumps(scores, indent=2))\n-     \n-     if analysis:\n-         analysis_path = proj_success / \"analysis.txt\"\n-         analysis_path.write_text(analysis, encoding=\"utf-8\")\n-         \n-     repo_copy = proj_success / \"repo\"\n-     if repo_copy.exists():\n-         shutil.rmtree(repo_copy)\n-     shutil.copytree(generated_repo, repo_copy, symlinks=False, ignore_dangling_symlinks=True)\n-     \n-     # Cleaning up FAILURE knowledge if we reached success\n-     proj_fail = FAILURE_DIR / project_name\n-     if proj_fail.exists():\n-         print(f\"[{project_name}] Promote to SUCCESS, removing FAILURE knowledge.\")\n-         shutil.rmtree(proj_fail, ignore_errors=True)\n+     meta_path = proj_success / \"metadata.json\"\n+     meta_path.write_text(json.dumps(scores, indent=2))\n+\n+     if analysis:\n+         analysis_path = proj_success / \"analysis.txt\"\n+         analysis_path.write_text(analysis, encoding=\"utf-8\")\n+\n+     repo_copy = proj_success / \"repo\"\n+     if repo_copy.exists():\n+         shutil.rmtree(repo_copy)\n+     shutil.copytree(generated_repo, repo_copy, symlinks=False, ignore_dangling_symlinks=True)\n+\n+     # Cleaning up FAILURE knowledge if we reached success\n+     proj_fail = (FAILURE_DIR / project_name).resolve()\n+     if not str(proj_fail).startswith(str(FAILURE_DIR.resolve())):\n+         raise ValueError(\"project_name leads to path traversal outside FAILURE_DIR\")\n+     if proj_fail.exists():\n+         print(f\"[{project_name}] Promote to SUCCESS, removing FAILURE knowledge.\")\n+         shutil.rmtree(proj_fail, ignore_errors=True)\n",
+            "repair_code": "import re\n\ndef is_safe_project_name(name: str) -> bool:\n    # 只允许字母数字，-和_，长度限制\n    return bool(re.fullmatch(r'[A-Za-z0-9_-]+', name))\n\n\ndef save_success_knowledge(project_name: str, generated_repo: Path, scores: Dict[str, Any], analysis: str = \"\"):\n    if not is_safe_project_name(project_name):\n        raise ValueError(f\"Invalid project_name: {project_name}\")\n\n    proj_success = (SUCCESS_DIR / project_name).resolve()\n    if not str(proj_success).startswith(str(SUCCESS_DIR.resolve())):\n        raise ValueError(\"project_name leads to path traversal outside SUCCESS_DIR\")\n    \n    proj_success.mkdir(parents=True, exist_ok=True)\n    meta_path = proj_success / \"metadata.json\"\n    meta_path.write_text(json.dumps(scores, indent=2))\n\n    if analysis:\n        analysis_path = proj_success / \"analysis.txt\"\n        analysis_path.write_text(analysis, encoding=\"utf-8\")\n\n    repo_copy = proj_success / \"repo\"\n    if repo_copy.exists():\n        shutil.rmtree(repo_copy)\n    shutil.copytree(generated_repo, repo_copy, symlinks=False, ignore_dangling_symlinks=True)\n\n    # Cleaning up FAILURE knowledge if we reached success\n    proj_fail = (FAILURE_DIR / project_name).resolve()\n    if not str(proj_fail).startswith(str(FAILURE_DIR.resolve())):\n        raise ValueError(\"project_name leads to path traversal outside FAILURE_DIR\")\n    if proj_fail.exists():\n        print(f\"[{project_name}] Promote to SUCCESS, removing FAILURE knowledge.\")\n        shutil.rmtree(proj_fail, ignore_errors=True)\n"
+        }
+    },
+    {
+        "function_id": "LiveCoder/method/run_with_memory.py::copy_success_knowledge_to_generation",
+        "caller": [
+            "LiveCoder\\method\\run_with_memory.py::main"
+        ],
+        "callee": [],
+        "function_content": "def copy_success_knowledge_to_generation(project_name: str, generated_repo: Path):\r\n    repo_copy = SUCCESS_DIR / project_name / \"repo\"\r\n    if repo_copy.exists():\r\n        if generated_repo.exists():\r\n            shutil.rmtree(generated_repo)\r\n        shutil.copytree(repo_copy, generated_repo)",
+        "function_name": "copy_success_knowledge_to_generation",
+        "file_path": "LiveCoder/method/run_with_memory.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-250",
+                "description": "未验证输入参数project_name，可能导致目录遍历攻击，影响文件系统安全。",
+                "defect_index": 0.55,
+                "repair_rate": 0.85,
+                "impact_degree": 0.4
+            },
+            {
+                "defect_rate": 0.18,
+                "CWE_id": "CWE-377",
+                "description": "使用shutil.rmtree强制删除生成目录，未做异常处理，可能导致程序崩溃或资源泄露。",
+                "defect_index": 0.48,
+                "repair_rate": 0.75,
+                "impact_degree": 0.35
+            },
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-732",
+                "description": "未对复制的文件内容做安全校验，存在将不可信文件复制到生成目录的风险，导致安全隐患。",
+                "defect_index": 0.4,
+                "repair_rate": 0.8,
+                "impact_degree": 0.3
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.47666666666666674,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.25,
+            "CWE_id": "CWE-250",
+            "description": "未验证输入参数project_name，可能导致目录遍历攻击，影响文件系统安全。",
+            "defect_index": 0.55,
+            "repair_rate": 0.85,
+            "impact_degree": 0.4
+        },
+        "repairs": {
+            "repair_advice": "为防止目录遍历攻击，应验证输入参数project_name是否仅包含合法的目录名称，禁止包含路径穿越字符如'..'或绝对路径，并限制为安全的文件夹名，从而避免非法访问或操作文件系统中不应访问的路径。",
+            "repair_patch": "- repo_copy = SUCCESS_DIR / project_name / \"repo\"\n+ if '..' in project_name or project_name.startswith('/') or '\\\\' in project_name or '/' in project_name:\n+     raise ValueError(\"Invalid project_name: directory traversal characters detected\")\n+ repo_copy = SUCCESS_DIR / project_name / \"repo\"\n\n- if repo_copy.exists():\n+ if repo_copy.exists():\n        if generated_repo.exists():\n            shutil.rmtree(generated_repo)\n        shutil.copytree(repo_copy, generated_repo)",
+            "repair_code": "def copy_success_knowledge_to_generation(project_name: str, generated_repo: Path):\n    if '..' in project_name or project_name.startswith('/') or '\\\\' in project_name or '/' in project_name:\n        raise ValueError(\"Invalid project_name: directory traversal characters detected\")\n    repo_copy = SUCCESS_DIR / project_name / \"repo\"\n    if repo_copy.exists():\n        if generated_repo.exists():\n            shutil.rmtree(generated_repo)\n        shutil.copytree(repo_copy, generated_repo)"
+        }
+    },
+    {
+        "function_id": "LiveCoder/method/run_with_memory.py::get_failure_knowledge",
+        "caller": [
+            "LiveCoder\\method\\run_with_memory.py::main"
+        ],
+        "callee": [],
+        "function_content": "def get_failure_knowledge(project_name: str) -> str:\r\n    analysis_path = FAILURE_DIR / project_name / \"analysis.txt\"\r\n    if analysis_path.exists():\r\n        return analysis_path.read_text(encoding=\"utf-8\")\r\n    return \"\"",
+        "function_name": "get_failure_knowledge",
+        "file_path": "LiveCoder/method/run_with_memory.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.57,
+                "CWE_id": "CWE-22",
+                "description": "路径遍历漏洞，直接根据外部输入拼接文件路径，可能导致访问敏感文件。",
+                "defect_index": 0.65,
+                "repair_rate": 0.85,
+                "impact_degree": 0.6
+            },
+            {
+                "defect_rate": 0.42,
+                "CWE_id": "CWE-295",
+                "description": "未对文件内容进行有效性验证，可能造成后续处理逻辑异常。",
+                "defect_index": 0.4,
+                "repair_rate": 0.75,
+                "impact_degree": 0.45
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-697",
+                "description": "缺少对文件读取失败（例如权限问题、编码异常）的异常处理，可能导致程序崩溃。",
+                "defect_index": 0.3,
+                "repair_rate": 0.9,
+                "impact_degree": 0.5
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.45,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.57,
+            "CWE_id": "CWE-22",
+            "description": "路径遍历漏洞，直接根据外部输入拼接文件路径，可能导致访问敏感文件。",
+            "defect_index": 0.65,
+            "repair_rate": 0.85,
+            "impact_degree": 0.6
+        },
+        "repairs": {
+            "repair_advice": "为防止路径遍历漏洞，需要对输入的project_name进行严格校验，阻止包含路径分隔符或父目录引用的字符串传入，从而避免访问非预期文件。可以使用白名单或限制仅允许项目名称为纯文件夹名，避免拼接外部控制路径。",
+            "repair_patch": "- analysis_path = FAILURE_DIR / project_name / \"analysis.txt\"\n+ import re\n+ if not re.match(r'^[a-zA-Z0-9_\\-]+$', project_name):\n+     return \"\"\n+ analysis_path = FAILURE_DIR / project_name / \"analysis.txt\"",
+            "repair_code": "def get_failure_knowledge(project_name: str) -> str:\n    import re\n    if not re.match(r'^[a-zA-Z0-9_\\-]+$', project_name):\n        return \"\"\n    analysis_path = FAILURE_DIR / project_name / \"analysis.txt\"\n    if analysis_path.exists():\n        return analysis_path.read_text(encoding=\"utf-8\")\n    return \"\""
+        }
+    },
+    {
+        "function_id": "LiveCoder/method/run_with_memory.py::save_failure_knowledge",
+        "caller": [
+            "LiveCoder\\method\\run_with_memory.py::main"
+        ],
+        "callee": [],
+        "function_content": "def save_failure_knowledge(project_name: str, analysis: str, logs_source: Path, best_score: float = -1.0):\r\n    proj_fail = FAILURE_DIR / project_name\r\n    proj_fail.mkdir(parents=True, exist_ok=True)\r\n    analysis_path = proj_fail / \"analysis.txt\"\r\n    analysis_path.write_text(analysis, encoding=\"utf-8\")\r\n    \r\n    meta_path = proj_fail / \"metadata.json\"\r\n    if best_score >= 0:\r\n        meta_path.write_text(json.dumps({\"best_score\": best_score}))\r\n    \r\n    dest_log = proj_fail / \"pytest_logs\"\r\n    if dest_log.exists():\r\n        shutil.rmtree(dest_log)\r\n    if logs_source.exists():\r\n        shutil.copytree(logs_source, dest_log)",
+        "function_name": "save_failure_knowledge",
+        "file_path": "LiveCoder/method/run_with_memory.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.3,
+                "CWE_id": "CWE-378",
+                "description": "未验证输入的project_name可能导致路径遍历，攻击者可通过构造恶意project_name覆盖或读取不应被访问的文件。",
+                "defect_index": 0.65,
+                "repair_rate": 0.85,
+                "impact_degree": 0.55
+            },
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-377",
+                "description": "对文件系统操作缺少异常处理，可能因磁盘权限或空间不足等问题导致程序异常崩溃。",
+                "defect_index": 0.5,
+                "repair_rate": 0.9,
+                "impact_degree": 0.6
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-732",
+                "description": "权限管理缺失，写入文件和目录操作没有限制，若外部传入路径未经严格校验，可能导致敏感文件被篡改。",
+                "defect_index": 0.55,
+                "repair_rate": 0.8,
+                "impact_degree": 0.45
+            },
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-22",
+                "description": "logs_source参数未做有效验证，拷贝目录时可能导致不安全的文件操作风险。",
+                "defect_index": 0.45,
+                "repair_rate": 0.75,
+                "impact_degree": 0.4
+            }
+        ],
+        "defect_num": 4,
+        "avg_defect_index": 0.5375,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.3,
+            "CWE_id": "CWE-378",
+            "description": "未验证输入的project_name可能导致路径遍历，攻击者可通过构造恶意project_name覆盖或读取不应被访问的文件。",
+            "defect_index": 0.65,
+            "repair_rate": 0.85,
+            "impact_degree": 0.55
+        },
+        "repairs": {
+            "repair_advice": "为防止路径遍历漏洞，应对传入的project_name进行严格验证，确保其仅包含允许的字符（如字母、数字、下划线和短横线），并且不包含路径分隔符。同时，可以限制project_name的长度，避免异常输入。这样可以防止攻击者通过构造恶意的project_name访问或覆盖系统中的任意文件。",
+            "repair_patch": "- def save_failure_knowledge(project_name: str, analysis: str, logs_source: Path, best_score: float = -1.0):\n-     proj_fail = FAILURE_DIR / project_name\n-     proj_fail.mkdir(parents=True, exist_ok=True)\n+ import re\n+\n+ def save_failure_knowledge(project_name: str, analysis: str, logs_source: Path, best_score: float = -1.0):\n+     # 验证 project_name，允许字母、数字、下划线、短横线，长度限制为1到100\n+     if not re.fullmatch(r'[A-Za-z0-9_-]{1,100}', project_name):\n+         raise ValueError(f\"Invalid project_name: '{project_name}'. It must only contain letters, numbers, '_' or '-', and be 1-100 characters long.\")\n+\n+     proj_fail = FAILURE_DIR / project_name\n+     proj_fail.mkdir(parents=True, exist_ok=True)",
+            "repair_code": "import re\n\ndef save_failure_knowledge(project_name: str, analysis: str, logs_source: Path, best_score: float = -1.0):\n    # 验证 project_name，允许字母、数字、下划线、短横线，长度限制为1到100\n    if not re.fullmatch(r'[A-Za-z0-9_-]{1,100}', project_name):\n        raise ValueError(f\"Invalid project_name: '{project_name}'. It must only contain letters, numbers, '_' or '-', and be 1-100 characters long.\")\n\n    proj_fail = FAILURE_DIR / project_name\n    proj_fail.mkdir(parents=True, exist_ok=True)\n    analysis_path = proj_fail / \"analysis.txt\"\n    analysis_path.write_text(analysis, encoding=\"utf-8\")\n\n    meta_path = proj_fail / \"metadata.json\"\n    if best_score >= 0:\n        meta_path.write_text(json.dumps({\"best_score\": best_score}))\n\n    dest_log = proj_fail / \"pytest_logs\"\n    if dest_log.exists():\n        shutil.rmtree(dest_log)\n    if logs_source.exists():\n        shutil.copytree(logs_source, dest_log)"
+        }
+    },
+    {
+        "function_id": "LiveCoder/method/run_with_memory.py::analyze_failures_with_llm",
+        "caller": [
+            "LiveCoder\\method\\run_with_memory.py::main"
+        ],
+        "callee": [],
+        "function_content": "def analyze_failures_with_llm(project_name: str, logs_dir: Path, api_base: str, api_key: str, model_name: str) -> str:\r\n    client_kwargs = {}\r\n    if api_base: client_kwargs[\"base_url\"] = api_base\r\n    if api_key: client_kwargs[\"api_key\"] = api_key\r\n    client = OpenAI(**client_kwargs)\r\n    \r\n    log_content = \"\"\r\n    for log_file in logs_dir.glob(\"*.log\"):\r\n        log_content += f\"\\n--- {log_file.name} ---\\n\"\r\n        log_content += log_file.read_text(encoding=\"utf-8\", errors=\"ignore\")\r\n        \r\n    if not log_content.strip():\r\n        return \"No explicit test logs found or logs are empty.\"\r\n        \r\n    prompt = f\"\"\"The test suite for project '{project_name}' failed.\r\nHere are the logs:\r\n{log_content[-15000:]}\r\n\r\nPlease analyze the failures and extract a Failure Knowledge entry in EXACTLY this format:\r\n# Failure Knowledge entry ({project_name})\r\nAttempt: [Attempt Number]\r\nFunctional score: [Score]\r\nObserved failure signals:\r\n- [Signals]\r\nRepository-level failure signals:\r\n- [Signals]\r\nCarry-over constraints for later attempts:\r\n- [Constraints]\"\"\"\r\n    real_model = model_name.replace(\"openai/\", \"\")\r\n    \r\n    try:\r\n        print(f\"[{project_name}] Calling LLM for failure analysis...\")\r\n        resp = client.chat.completions.create(\r\n            model=real_model,\r\n            messages=[\r\n                {\"role\": \"system\", \"content\": \"You are an expert Python developer. Analyze test failures and exactly output the requested failure knowledge format.\"},\r\n                {\"role\": \"user\", \"content\": prompt}\r\n            ],\r\n            temperature=0.2\r\n        )\r\n        return resp.choices[0].message.content or \"No analysis provided by LLM.\"\r\n    except Exception as e:\r\n        return f\"Failed to get LLM analysis: {e}\"",
+        "function_name": "analyze_failures_with_llm",
+        "file_path": "LiveCoder/method/run_with_memory.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.35,
+                "CWE_id": "CWE-78",
+                "description": "日志内容直接拼接构造 prompt，存在命令注入风险，攻击者可通过日志文件注入恶意内容影响后续执行。",
+                "defect_index": 0.6,
+                "repair_rate": 0.85,
+                "impact_degree": 0.55
+            },
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-20",
+                "description": "缺少对日志文件读取内容的严格校验和过滤，恶意或异常格式日志可能导致异常或错误解析。",
+                "defect_index": 0.5,
+                "repair_rate": 0.8,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-252",
+                "description": "异常捕获时只返回异常消息，没有做详细处理或重试，易导致隐藏具体异常信息，影响可靠性。",
+                "defect_index": 0.4,
+                "repair_rate": 0.75,
+                "impact_degree": 0.45
+            },
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-434",
+                "description": "直接读取日志文件内容，没有对文件路径或类型严格限制，存在潜在路径遍历或恶意文件注入风险。",
+                "defect_index": 0.35,
+                "repair_rate": 0.9,
+                "impact_degree": 0.4
+            }
+        ],
+        "defect_num": 4,
+        "avg_defect_index": 0.4625,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.35,
+            "CWE_id": "CWE-78",
+            "description": "日志内容直接拼接构造 prompt，存在命令注入风险，攻击者可通过日志文件注入恶意内容影响后续执行。",
+            "defect_index": 0.6,
+            "repair_rate": 0.85,
+            "impact_degree": 0.55
+        },
+        "repairs": {
+            "repair_advice": "为防止命令注入风险，应避免将日志内容直接拼接到 prompt 中，需对日志内容进行严格过滤或转义，或者对日志内容进行结构化处理后传递给模型，防止恶意日志注入导致 LLM 执行异常或错误行为。",
+            "repair_patch": "-    prompt = f\"\"\"The test suite for project '{project_name}' failed.\n-Here are the logs:\n-{log_content[-15000:]}\n-\nPlease analyze the failures and extract a Failure Knowledge entry in EXACTLY this format:\n-# Failure Knowledge entry ({project_name})\n-Attempt: [Attempt Number]\n-Functional score: [Score]\n-Observed failure signals:\n-- [Signals]\n-Repository-level failure signals:\n-- [Signals]\n-Carry-over constraints for later attempts:\n-- [Constraints]\"\"\"\n+    import html\n+    # 对日志内容进行 html 转义，防止注入特殊字符\n+    safe_log_content = html.escape(log_content[-15000:])\n+    prompt = f\"\"\"The test suite for project '{html.escape(project_name)}' failed.\n+Here are the logs (HTML escaped):\n+{safe_log_content}\n+\n+Please analyze the failures and extract a Failure Knowledge entry in EXACTLY this format:\n+# Failure Knowledge entry ({html.escape(project_name)})\n+Attempt: [Attempt Number]\n+Functional score: [Score]\n+Observed failure signals:\n+- [Signals]\n+Repository-level failure signals:\n+- [Signals]\n+Carry-over constraints for later attempts:\n+- [Constraints]\"\"\"",
+            "repair_code": "def analyze_failures_with_llm(project_name: str, logs_dir: Path, api_base: str, api_key: str, model_name: str) -> str:\n    import html\n    client_kwargs = {}\n    if api_base: client_kwargs[\"base_url\"] = api_base\n    if api_key: client_kwargs[\"api_key\"] = api_key\n    client = OpenAI(**client_kwargs)\n    \n    log_content = \"\"\n    for log_file in logs_dir.glob(\"*.log\"):\n        log_content += f\"\\n--- {log_file.name} ---\\n\"\n        log_content += log_file.read_text(encoding=\"utf-8\", errors=\"ignore\")\n        \n    if not log_content.strip():\n        return \"No explicit test logs found or logs are empty.\"\n        \n    # 对日志及项目名进行 HTML 转义，防止恶意注入\n    safe_log_content = html.escape(log_content[-15000:])\n    prompt = f\"\"\"The test suite for project '{html.escape(project_name)}' failed.\nHere are the logs (HTML escaped):\n{safe_log_content}\n\nPlease analyze the failures and extract a Failure Knowledge entry in EXACTLY this format:\n# Failure Knowledge entry ({html.escape(project_name)})\nAttempt: [Attempt Number]\nFunctional score: [Score]\nObserved failure signals:\n- [Signals]\nRepository-level failure signals:\n- [Signals]\nCarry-over constraints for later attempts:\n- [Constraints]\"\"\"\n    real_model = model_name.replace(\"openai/\", \"\")\n    \n    try:\n        print(f\"[{project_name}] Calling LLM for failure analysis...\")\n        resp = client.chat.completions.create(\n            model=real_model,\n            messages=[\n                {\"role\": \"system\", \"content\": \"You are an expert Python developer. Analyze test failures and exactly output the requested failure knowledge format.\"},\n                {\"role\": \"user\", \"content\": prompt}\n            ],\n            temperature=0.2\n        )\n        return resp.choices[0].message.content or \"No analysis provided by LLM.\"\n    except Exception as e:\n        return f\"Failed to get LLM analysis: {e}\""
+        }
+    },
+    {
+        "function_id": "LiveCoder/method/run_with_memory.py::main",
+        "caller": [],
+        "callee": [
+            "LiveCoder\\method\\run_with_memory.py::save_success_knowledge",
+            "LiveCoder\\method\\run_with_memory.py::_run_mini",
+            "LiveCoder\\method\\run_with_memory.py::_build_task_statement",
+            "LiveCoder\\method\\run_with_memory.py::copy_success_knowledge_to_generation",
+            "LiveCoder\\method\\run_with_memory.py::_read_api_key",
+            "LiveCoder\\method\\run_with_memory.py::_find_all_tasks",
+            "LiveCoder\\method\\run_with_memory.py::save_failure_knowledge",
+            "LiveCoder\\method\\run_with_memory.py::get_failure_knowledge",
+            "LiveCoder\\method\\run_with_memory.py::get_best_score",
+            "LiveCoder\\method\\run_with_memory.py::_resolve_generated_repo",
+            "LiveCoder\\method\\run_with_memory.py::analyze_failures_with_llm",
+            "LiveCoder\\method\\run_with_memory.py::_die",
+            "LiveCoder\\method\\run_with_memory.py::_load_yaml",
+            "LiveCoder\\method\\run_with_memory.py::_run_eval",
+            "project 8\\tinycc_c\\tests\\libtcc_test_mt.c::parse_args",
+            "LiveCoder\\method\\memory\\success\\Cachetools\\repo\\cachetools\\cache.py::get",
+            "LiveCoder\\method\\run_with_memory.py::analyze_success_with_llm"
+        ],
+        "function_content": "def main() -> None:\r\n    parser = argparse.ArgumentParser()\r\n    parser.add_argument(\"--benchmark-root\", default=str(ROOT / \"ral\"), help=\"Root directory of the benchmark\")\r\n    parser.add_argument(\"--model\", default=os.environ.get(\"MODEL_NAME\") or \"deepseek-v3-0324\")\r\n    parser.add_argument(\"--api-base\", default=os.environ.get(\"API_BASE\") or os.environ.get(\"OPENAI_BASE_URL\") or os.environ.get(\"OPENAI_API_BASE\") or \"\")\r\n    parser.add_argument(\"--api-key-env\", default=\"OPENAI_API_KEY\")\r\n    parser.add_argument(\"--api-key-file\", default=os.environ.get(\"OPENAI_API_KEY_FILE\") or \"\")\r\n    parser.add_argument(\"--live-config\", default=str(ROOT / \"method\" / \"config\" / \"livecoder.yaml\"))\r\n    parser.add_argument(\"--step-limit\", type=int, default=20)\r\n    parser.add_argument(\"--mini-timeout-s\", type=int, default=0)\r\n    parser.add_argument(\"--yolo\", action=\"store_true\", default=True, help=\"Disable action confirmation prompts\")\r\n    parser.add_argument(\"--start\", type=int, default=0)\r\n    parser.add_argument(\"--limit\", type=int, default=0)\r\n    parser.add_argument(\"--csv\", default=\"\")\r\n    parser.add_argument(\"--no-rollback\", action=\"store_true\", help=\"Bypass fallback mechanism upon regressions\")\r\n    args = parser.parse_args()\r\n\r\n    global BENCHMARK_ROOT\r\n    BENCHMARK_ROOT = Path(args.benchmark_root).resolve()\r\n\r\n    tasks_dir = BENCHMARK_ROOT / \"tasks\"\r\n    tasks = _find_all_tasks(tasks_dir)\r\n    if not tasks:\r\n        _die(f\"No task YAML files found under: {tasks_dir}\")\r\n\r\n    start = max(0, int(args.start))\r\n    end = len(tasks)\r\n    if args.limit and int(args.limit) > 0:\r\n        end = min(end, start + int(args.limit))\r\n    tasks = tasks[start:end]\r\n\r\n    if not args.api_base:\r\n        _die(\"Missing API base URL. Provide --api-base or set API_BASE/OPENAI_BASE_URL/OPENAI_API_BASE.\")\r\n    api_key = _read_api_key(args.api_key_env, args.api_key_file)\r\n    if not api_key:\r\n        _die(f\"Missing API key (env {args.api_key_env}). Provide --api-key-file or set the env var before running.\")\r\n\r\n    results_dir = BENCHMARK_ROOT / \"results\"\r\n    results_dir.mkdir(parents=True, exist_ok=True)\r\n    csv_path = Path(args.csv).expanduser().resolve() if args.csv else (results_dir / f\"{args.model}__livecoder_memory_all.csv\")\r\n\r\n    rows: List[Dict[str, Any]] = []\r\n    for idx, task_yaml in enumerate(tasks, start=start):\r\n        task = _load_yaml(task_yaml)\r\n        project_name = task_yaml.parent.name\r\n        generated_repo = _resolve_generated_repo(task, project_name)\r\n        \r\n        print(f\"\\n=== [{idx}] {project_name} ===\")\r\n        \r\n        best_score = get_best_score(project_name)\r\n        # If perfect score (>= 1.0), skip generation\r\n        if best_score >= 1.0:\r\n            print(f\"[{project_name}] Perfect score {best_score} exists in memory. Skipping generation and extracting success knowledge.\")\r\n            copy_success_knowledge_to_generation(project_name, generated_repo)\r\n            # Evaluate just to ensure results yaml is fresh and generated or we could just skip eval\r\n            eval_result = _run_eval(task_yaml)\r\n            \r\n            result_yaml = results_dir / f\"{project_name}_results.yaml\"\r\n            scores = {}\r\n            if result_yaml.exists():\r\n                scores = yaml.safe_load(result_yaml.read_text(encoding=\"utf-8\")) or {}\r\n            \r\n            # Since we have it in memory already as `scores` probably from the metadata load, we might want to reload or trust metadata\r\n            # But the user wants row in CSV. We should better load from the SUCCESS metadata if skip_generation happened\r\n            if not scores and (SUCCESS_DIR / project_name / \"metadata.json\").exists():\r\n                 try:\r\n                     scores = json.loads((SUCCESS_DIR / project_name / \"metadata.json\").read_text())\r\n                 except: pass\r\n\r\n            subscores = scores.get(\"non_functional_subscores\") or {}\r\n            rows.append({\r\n                \"index\": idx, \"project\": project_name, \"task_yaml\": str(task_yaml), \"generated_repo\": str(generated_repo),\r\n                \"mini_ok\": \"SKIPPED_PERFECT\", \"mini_elapsed_s\": 0.0, \"mini_model\": args.model, \"mini_error\": \"\",\r\n                \"eval_ok\": eval_result.get(\"ok\"), \"eval_elapsed_s\": eval_result.get(\"elapsed_s\"), \"eval_error\": eval_result.get(\"error\"),\r\n                \"functional_score\": best_score, \r\n                \"non_functional_score\": float(scores.get(\"non_functional_score\", 0.0)),\r\n                \"maintainability\": float(subscores.get(\"maintainability\", 0.0)),\r\n                \"security\": float(subscores.get(\"security\", 0.0)),\r\n                \"robustness\": float(subscores.get(\"robustness\", 0.0)),\r\n                \"performance\": float(subscores.get(\"performance\", 0.0)),\r\n                \"resource\": float(subscores.get(\"resource\", 0.0)),\r\n            })\r\n            continue\r\n\r\n        # If not perfect, setup for generation\r\n        if best_score >= 1.0:\r\n            print(f\"[{project_name}] Seeding generation with previous BEST (PERFECT) (score: {best_score})\")\r\n            copy_success_knowledge_to_generation(project_name, generated_repo)\r\n        else:\r\n            # If score is not perfect, we leverage failure analysis.\r\n            # If best_score > 0, we preserve the directory for incremental fixes.\r\n            # If best_score == 0, we start fresh to avoid being trapped in a completely broken state.\r\n            if generated_repo.exists():\r\n                if best_score > 0.0:\r\n                    print(f\"[{project_name}] Preserving generation dir for incremental fix (Best Score: {best_score}).\")\r\n                else:\r\n                    print(f\"[{project_name}] Score is 0.0. Cleaning up generation dir (Fresh start with failure knowledge).\")\r\n                    shutil.rmtree(generated_repo)\r\n            generated_repo.mkdir(parents=True, exist_ok=True)\r\n            \r\n        failure_analysis = get_failure_knowledge(project_name) if best_score >= 0 else \"\"\r\n        task_statement = _build_task_statement(task_yaml, task, failure_analysis)\r\n        (generated_repo / \"_ral_task.txt\").write_text(task_statement, encoding=\"utf-8\")\r\n\r\n        # Snapshot before run\r\n        snap = SNAPSHOTS_DIR / f\"{project_name}_start\"\r\n        if snap.exists(): shutil.rmtree(snap)\r\n        shutil.copytree(generated_repo, snap, symlinks=False, ignore_dangling_symlinks=True)\r\n\r\n        # 1. Run mini-swe-agent\r\n        print(f\"[{project_name}] Running mini-swe-agent...\")\r\n        mini_result = _run_mini(\r\n            cwd=generated_repo, task_statement=task_statement, model=args.model,\r\n            live_config=args.live_config, step_limit=int(args.step_limit),\r\n            yolo=bool(args.yolo), api_base=str(args.api_base),\r\n            api_key_env=str(args.api_key_env), api_key=str(api_key), mini_timeout_s=int(args.mini_timeout_s),\r\n        )\r\n\r\n        # 2. Evaluate\r\n        print(f\"[{project_name}] Evaluating generation...\")\r\n        eval_result = _run_eval(task_yaml)\r\n\r\n        # 3. Score checks\r\n        result_yaml = results_dir / f\"{project_name}_results.yaml\"\r\n        scores = {}\r\n        if result_yaml.exists():\r\n            try:\r\n                scores = yaml.safe_load(result_yaml.read_text(encoding=\"utf-8\")) or {}\r\n            except Exception:\r\n                pass\r\n        \r\n        new_functional_score = float(scores.get(\"functional_score\", 0.0))\r\n        print(f\"[{project_name}] Evaluation complete. Old best: {best_score}, New score: {new_functional_score}\")\r\n\r\n        if new_functional_score >= 1.0:\r\n            print(f\"[{project_name}] Score is PERFECT (1.0)! Updating SUCCESS knowledge.\")\r\n            import subprocess\r\n            diff_txt = \"\"\r\n            try:\r\n                diff_txt = subprocess.check_output([\"git\", \"diff\"], cwd=str(generated_repo), text=True, errors=\"ignore\")\r\n            except:\r\n                pass\r\n            success_analysis = analyze_success_with_llm(project_name, diff_txt, args.api_base, api_key, args.model)\r\n            save_success_knowledge(project_name, generated_repo, scores, success_analysis)\r\n            best_score = new_functional_score\r\n        else:\r\n            print(f\"[{project_name}] Score is {new_functional_score} (not perfect).\")\r\n            # If it's worse, rollback to snapshot to avoid degradation, except if we already had a full score \r\n            # (which is skipped anyway). Since we only save 1.0 to success, < 1.0 means we just avoid regressing manually:\r\n            if new_functional_score < best_score and best_score < 1.0:\r\n                 if getattr(args, 'no_rollback', False):\r\n                     print(f\"[{project_name}] Regression detected ({new_functional_score} < {best_score}) but rollback logic overridden. Retaining generated code.\")\r\n                     best_score = new_functional_score\r\n                 else:\r\n                     print(f\"[{project_name}] Regression detected! Reverting to snapshot from before this run.\")\r\n                     if snap.exists():\r\n                         shutil.rmtree(generated_repo)\r\n                         shutil.copytree(snap, generated_repo)\r\n                         _run_eval(task_yaml)\r\n                 # Keep best_score as the previous unless overridden\r\n            else:\r\n                 # It improved or stayed same, update best_score (in memory variable) but DO NOT write to SUCCESS\r\n                 best_score = max(best_score, new_functional_score)\r\n                 \r\n            print(f\"[{project_name}] Analyzing failures and updating FAILURE knowledge.\")\r\n            logs_dir = BENCHMARK_ROOT / \"results\" / project_name / \"pytest_logs\"\r\n            analysis = analyze_failures_with_llm(project_name, logs_dir, args.api_base, api_key, args.model)\r\n            save_failure_knowledge(project_name, analysis, logs_dir, best_score)\r\n\r\n        subscores = scores.get(\"non_functional_subscores\") or {}\r\n        rows.append({\r\n            \"index\": idx, \"project\": project_name, \"task_yaml\": str(task_yaml), \"generated_repo\": str(generated_repo),\r\n            \"mini_ok\": mini_result.get(\"ok\"), \"mini_elapsed_s\": mini_result.get(\"elapsed_s\"), \"mini_model\": mini_result.get(\"model\"), \"mini_error\": mini_result.get(\"error\"),\r\n            \"eval_ok\": eval_result.get(\"ok\"), \"eval_elapsed_s\": eval_result.get(\"elapsed_s\"), \"eval_error\": eval_result.get(\"error\"),\r\n            \"functional_score\": float(scores.get(\"functional_score\", 0.0)),\r\n            \"non_functional_score\": float(scores.get(\"non_functional_score\", 0.0)),\r\n            \"maintainability\": float(subscores.get(\"maintainability\", 0.0)),\r\n            \"security\": float(subscores.get(\"security\", 0.0)),\r\n            \"robustness\": float(subscores.get(\"robustness\", 0.0)),\r\n            \"performance\": float(subscores.get(\"performance\", 0.0)),\r\n            \"resource\": float(subscores.get(\"resource\", 0.0)),\r\n        })\r\n\r\n    fieldnames = list(rows[0].keys()) if rows else []\r\n    with open(csv_path, \"w\", newline=\"\", encoding=\"utf-8\") as f:\r\n        if fieldnames:\r\n            w = csv.DictWriter(f, fieldnames=fieldnames)\r\n            w.writeheader()\r\n            for r in rows: w.writerow(r)\r\n    print(f\"\\n[INFO] Summary CSV written: {csv_path}\")\r\n\r\n    print(f\"\\n[INFO] Auto-generating standard report...\")\r\n    subprocess.run([sys.executable, str(ROOT / \"scripts/generate_final_report.py\"), \"--model\", args.model])",
+        "function_name": "main",
+        "file_path": "LiveCoder/method/run_with_memory.py",
+        "language": "py",
+        "caller_num": 0,
+        "callee_num": 17,
+        "defects": [
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-434",
+                "description": "程序从环境变量和外部文件读取API key，存在信息泄露或丢失风险，缺乏对敏感信息的安全保护措施。",
+                "defect_index": 0.65,
+                "repair_rate": 0.85,
+                "impact_degree": 0.7
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-377",
+                "description": "函数中调用了外部命令（git diff 和子进程执行脚本），如果参数未严格控制，可能导致命令注入风险。",
+                "defect_index": 0.6,
+                "repair_rate": 0.75,
+                "impact_degree": 0.6
+            },
+            {
+                "defect_rate": 0.18,
+                "CWE_id": "CWE-395",
+                "description": "异常处理不充分，部分地方使用了空的except pass，忽略了异常，可能导致隐藏实际错误问题且影响程序稳定性。",
+                "defect_index": 0.5,
+                "repair_rate": 0.9,
+                "impact_degree": 0.55
+            },
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-73",
+                "description": "操作文件系统时存在潜在不安全风险，如删除和复制目录未校验路径合法性，可能导致路径遍历攻击或误删重要数据。",
+                "defect_index": 0.45,
+                "repair_rate": 0.8,
+                "impact_degree": 0.5
+            }
+        ],
+        "defect_num": 4,
+        "avg_defect_index": 0.55,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.25,
+            "CWE_id": "CWE-434",
+            "description": "程序从环境变量和外部文件读取API key，存在信息泄露或丢失风险，缺乏对敏感信息的安全保护措施。",
+            "defect_index": 0.65,
+            "repair_rate": 0.85,
+            "impact_degree": 0.7
+        },
+        "repairs": {
+            "repair_advice": "针对从环境变量和外部文件读取的敏感API密钥，应该限制密钥的访问权限，避免直接将密钥明文传递或暴露在日志和输出中。建议使用安全存储机制（如操作系统的密钥管理服务、环境变量加密或专门的秘密管理工具），同时限制文件权限，并在使用后立即清除敏感变量，避免泄露风险。",
+            "repair_patch": "- api_key = _read_api_key(args.api_key_env, args.api_key_file)\n+ import stat\n+ \n+ def _secure_read_api_key(env_var: str, file_path: str) -> str:\n+     import os\n+     key = \"\"\n+     # 优先读取加密保护的环境变量\n+     key = os.environ.get(env_var, \"\")\n+     \n+     if not key and file_path:\n+         try:\n+             # 确保文件权限仅限用户读取（600）\n+             st_mode = os.stat(file_path).st_mode\n+             if st_mode & (stat.S_IRWXG | stat.S_IRWXO):  # 如果组或其他用户有权限\n+                 raise PermissionError(f\"API key file {file_path} permissions are too open. Please restrict to user-only read (chmod 600).\")\n+             with open(file_path, \"r\", encoding=\"utf-8\") as f:\n+                 key = f.read().strip()\n+         except Exception as e:\n+             print(f\"[ERROR] Failed to read API key from file: {e}\")\n+             key = \"\"\n+     \n+     return key\n+\n+ api_key = _secure_read_api_key(args.api_key_env, args.api_key_file)\n-\n- if not api_key:\n-     _die(f\"Missing API key (env {args.api_key_env}). Provide --api-key-file or set the env var before running.\")\n+\n+ if not api_key:\n+     _die(f\"Missing API key (env {args.api_key_env}). Provide --api-key-file or set the env var before running.\")\n+\n+ # 使用完毕后清除api_key变量，减小风险\n+ import atexit\n+ def clear_api_key():\n+     nonlocal api_key\n+     api_key = None\n+ atexit.register(clear_api_key)",
+            "repair_code": "def main() -> None:\n    import stat\n    import atexit\n    parser = argparse.ArgumentParser()\n    parser.add_argument(\"--benchmark-root\", default=str(ROOT / \"ral\"), help=\"Root directory of the benchmark\")\n    parser.add_argument(\"--model\", default=os.environ.get(\"MODEL_NAME\") or \"deepseek-v3-0324\")\n    parser.add_argument(\"--api-base\", default=os.environ.get(\"API_BASE\") or os.environ.get(\"OPENAI_BASE_URL\") or os.environ.get(\"OPENAI_API_BASE\") or \"\")\n    parser.add_argument(\"--api-key-env\", default=\"OPENAI_API_KEY\")\n    parser.add_argument(\"--api-key-file\", default=os.environ.get(\"OPENAI_API_KEY_FILE\") or \"\")\n    parser.add_argument(\"--live-config\", default=str(ROOT / \"method\" / \"config\" / \"livecoder.yaml\"))\n    parser.add_argument(\"--step-limit\", type=int, default=20)\n    parser.add_argument(\"--mini-timeout-s\", type=int, default=0)\n    parser.add_argument(\"--yolo\", action=\"store_true\", default=True, help=\"Disable action confirmation prompts\")\n    parser.add_argument(\"--start\", type=int, default=0)\n    parser.add_argument(\"--limit\", type=int, default=0)\n    parser.add_argument(\"--csv\", default=\"\")\n    parser.add_argument(\"--no-rollback\", action=\"store_true\", help=\"Bypass fallback mechanism upon regressions\")\n    args = parser.parse_args()\n\n    def _secure_read_api_key(env_var: str, file_path: str) -> str:\n        import os\n        key = \"\"\n        # 优先读取加密保护的环境变量\n        key = os.environ.get(env_var, \"\")\n        \n        if not key and file_path:\n            try:\n                # 确保文件权限仅限用户读取（600）\n                st_mode = os.stat(file_path).st_mode\n                if st_mode & (stat.S_IRWXG | stat.S_IRWXO):  # 如果组或其他用户有权限\n                    raise PermissionError(f\"API key file {file_path} permissions are too open. Please restrict to user-only read (chmod 600).\")\n                with open(file_path, \"r\", encoding=\"utf-8\") as f:\n                    key = f.read().strip()\n            except Exception as e:\n                print(f\"[ERROR] Failed to read API key from file: {e}\")\n                key = \"\"\n        \n        return key\n\n    global BENCHMARK_ROOT\n    BENCHMARK_ROOT = Path(args.benchmark_root).resolve()\n\n    tasks_dir = BENCHMARK_ROOT / \"tasks\"\n    tasks = _find_all_tasks(tasks_dir)\n    if not tasks:\n        _die(f\"No task YAML files found under: {tasks_dir}\")\n\n    start = max(0, int(args.start))\n    end = len(tasks)\n    if args.limit and int(args.limit) > 0:\n        end = min(end, start + int(args.limit))\n    tasks = tasks[start:end]\n\n    if not args.api_base:\n        _die(\"Missing API base URL. Provide --api-base or set API_BASE/OPENAI_BASE_URL/OPENAI_API_BASE.\")\n    api_key = _secure_read_api_key(args.api_key_env, args.api_key_file)\n    if not api_key:\n        _die(f\"Missing API key (env {args.api_key_env}). Provide --api-key-file or set the env var before running.\")\n\n    # 使用完毕后清除api_key变量，减小风险\n    def clear_api_key():\n        nonlocal api_key\n        api_key = None\n    atexit.register(clear_api_key)\n\n    results_dir = BENCHMARK_ROOT / \"results\"\n    results_dir.mkdir(parents=True, exist_ok=True)\n    csv_path = Path(args.csv).expanduser().resolve() if args.csv else (results_dir / f\"{args.model}__livecoder_memory_all.csv\")\n\n    rows: List[Dict[str, Any]] = []\n    for idx, task_yaml in enumerate(tasks, start=start):\n        task = _load_yaml(task_yaml)\n        project_name = task_yaml.parent.name\n        generated_repo = _resolve_generated_repo(task, project_name)\n        \n        print(f\"\\n=== [{idx}] {project_name} ===\")\n        \n        best_score = get_best_score(project_name)\n        # If perfect score (>= 1.0), skip generation\n        if best_score >= 1.0:\n            print(f\"[{project_name}] Perfect score {best_score} exists in memory. Skipping generation and extracting success knowledge.\")\n            copy_success_knowledge_to_generation(project_name, generated_repo)\n            # Evaluate just to ensure results yaml is fresh and generated or we could just skip eval\n            eval_result = _run_eval(task_yaml)\n            \n            result_yaml = results_dir / f\"{project_name}_results.yaml\"\n            scores = {}\n            if result_yaml.exists():\n                scores = yaml.safe_load(result_yaml.read_text(encoding=\"utf-8\")) or {}\n            \n            # Since we have it in memory already as `scores` probably from the metadata load, we might want to reload or trust metadata\n            # But the user wants row in CSV. We should better load from the SUCCESS metadata if skip_generation happened\n            if not scores and (SUCCESS_DIR / project_name / \"metadata.json\").exists():\n                 try:\n                     scores = json.loads((SUCCESS_DIR / project_name / \"metadata.json\").read_text())\n                 except: pass\n\n            subscores = scores.get(\"non_functional_subscores\") or {}\n            rows.append({\n                \"index\": idx, \"project\": project_name, \"task_yaml\": str(task_yaml), \"generated_repo\": str(generated_repo),\n                \"mini_ok\": \"SKIPPED_PERFECT\", \"mini_elapsed_s\": 0.0, \"mini_model\": args.model, \"mini_error\": \"\",\n                \"eval_ok\": eval_result.get(\"ok\"), \"eval_elapsed_s\": eval_result.get(\"elapsed_s\"), \"eval_error\": eval_result.get(\"error\"),\n                \"functional_score\": best_score, \n                \"non_functional_score\": float(scores.get(\"non_functional_score\", 0.0)),\n                \"maintainability\": float(subscores.get(\"maintainability\", 0.0)),\n                \"security\": float(subscores.get(\"security\", 0.0)),\n                \"robustness\": float(subscores.get(\"robustness\", 0.0)),\n                \"performance\": float(subscores.get(\"performance\", 0.0)),\n                \"resource\": float(subscores.get(\"resource\", 0.0)),\n            })\n            continue\n\n        # If not perfect, setup for generation\n        if best_score >= 1.0:\n            print(f\"[{project_name}] Seeding generation with previous BEST (PERFECT) (score: {best_score})\")\n            copy_success_knowledge_to_generation(project_name, generated_repo)\n        else:\n            # If score is not perfect, we leverage failure analysis.\n            # If best_score > 0, we preserve the directory for incremental fixes.\n            # If best_score == 0, we start fresh to avoid being trapped in a completely broken state.\n            if generated_repo.exists():\n                if best_score > 0.0:\n                    print(f\"[{project_name}] Preserving generation dir for incremental fix (Best Score: {best_score}).\")\n                else:\n                    print(f\"[{project_name}] Score is 0.0. Cleaning up generation dir (Fresh start with failure knowledge).\")\n                    shutil.rmtree(generated_repo)\n            generated_repo.mkdir(parents=True, exist_ok=True)\n            \n        failure_analysis = get_failure_knowledge(project_name) if best_score >= 0 else \"\"\n        task_statement = _build_task_statement(task_yaml, task, failure_analysis)\n        (generated_repo / \"_ral_task.txt\").write_text(task_statement, encoding=\"utf-8\")\n\n        # Snapshot before run\n        snap = SNAPSHOTS_DIR / f\"{project_name}_start\"\n        if snap.exists(): shutil.rmtree(snap)\n        shutil.copytree(generated_repo, snap, symlinks=False, ignore_dangling_symlinks=True)\n\n        # 1. Run mini-swe-agent\n        print(f\"[{project_name}] Running mini-swe-agent...\")\n        mini_result = _run_mini(\n            cwd=generated_repo, task_statement=task_statement, model=args.model,\n            live_config=args.live_config, step_limit=int(args.step_limit),\n            yolo=bool(args.yolo), api_base=str(args.api_base),\n            api_key_env=str(args.api_key_env), api_key=str(api_key), mini_timeout_s=int(args.mini_timeout_s),\n        )\n\n        # 2. Evaluate\n        print(f\"[{project_name}] Evaluating generation...\")\n        eval_result = _run_eval(task_yaml)\n\n        # 3. Score checks\n        result_yaml = results_dir / f\"{project_name}_results.yaml\"\n        scores = {}\n        if result_yaml.exists():\n            try:\n                scores = yaml.safe_load(result_yaml.read_text(encoding=\"utf-8\")) or {}\n            except Exception:\n                pass\n        \n        new_functional_score = float(scores.get(\"functional_score\", 0.0))\n        print(f\"[{project_name}] Evaluation complete. Old best: {best_score}, New score: {new_functional_score}\")\n\n        if new_functional_score >= 1.0:\n            print(f\"[{project_name}] Score is PERFECT (1.0)! Updating SUCCESS knowledge.\")\n            import subprocess\n            diff_txt = \"\"\n            try:\n                diff_txt = subprocess.check_output([\"git\", \"diff\"], cwd=str(generated_repo), text=True, errors=\"ignore\")\n            except:\n                pass\n            success_analysis = analyze_success_with_llm(project_name, diff_txt, args.api_base, api_key, args.model)\n            save_success_knowledge(project_name, generated_repo, scores, success_analysis)\n            best_score = new_functional_score\n        else:\n            print(f\"[{project_name}] Score is {new_functional_score} (not perfect).\")\n            # If it's worse, rollback to snapshot to avoid degradation, except if we already had a full score \n            # (which is skipped anyway). Since we only save 1.0 to success, < 1.0 means we just avoid regressing manually:\n            if new_functional_score < best_score and best_score < 1.0:\n                 if getattr(args, 'no_rollback', False):\n                     print(f\"[{project_name}] Regression detected ({new_functional_score} < {best_score}) but rollback logic overridden. Retaining generated code.\")\n                     best_score = new_functional_score\n                 else:\n                     print(f\"[{project_name}] Regression detected! Reverting to snapshot from before this run.\")\n                     if snap.exists():\n                         shutil.rmtree(generated_repo)\n                         shutil.copytree(snap, generated_repo)\n                         _run_eval(task_yaml)\n                 # Keep best_score as the previous unless overridden\n            else:\n                 # It improved or stayed same, update best_score (in memory variable) but DO NOT write to SUCCESS\n                 best_score = max(best_score, new_functional_score)\n                 \n            print(f\"[{project_name}] Analyzing failures and updating FAILURE knowledge.\")\n            logs_dir = BENCHMARK_ROOT / \"results\" / project_name / \"pytest_logs\"\n            analysis = analyze_failures_with_llm(project_name, logs_dir, args.api_base, api_key, args.model)\n            save_failure_knowledge(project_name, analysis, logs_dir, best_score)\n\n        subscores = scores.get(\"non_functional_subscores\") or {}\n        rows.append({\n            \"index\": idx, \"project\": project_name, \"task_yaml\": str(task_yaml), \"generated_repo\": str(generated_repo),\n            \"mini_ok\": mini_result.get(\"ok\"), \"mini_elapsed_s\": mini_result.get(\"elapsed_s\"), \"mini_model\": mini_result.get(\"model\"), \"mini_error\": mini_result.get(\"error\"),\n            \"eval_ok\": eval_result.get(\"ok\"), \"eval_elapsed_s\": eval_result.get(\"elapsed_s\"), \"eval_error\": eval_result.get(\"error\"),\n            \"functional_score\": float(scores.get(\"functional_score\", 0.0)),\n            \"non_functional_score\": float(scores.get(\"non_functional_score\", 0.0)),\n            \"maintainability\": float(subscores.get(\"maintainability\", 0.0)),\n            \"security\": float(subscores.get(\"security\", 0.0)),\n            \"robustness\": float(subscores.get(\"robustness\", 0.0)),\n            \"performance\": float(subscores.get(\"performance\", 0.0)),\n            \"resource\": float(subscores.get(\"resource\", 0.0)),\n        })\n\n    fieldnames = list(rows[0].keys()) if rows else []\n    with open(csv_path, \"w\", newline=\"\", encoding=\"utf-8\") as f:\n        if fieldnames:\n            w = csv.DictWriter(f, fieldnames=fieldnames)\n            w.writeheader()\n            for r in rows: w.writerow(r)\n    print(f\"\\n[INFO] Summary CSV written: {csv_path}\")\n\n    print(f\"\\n[INFO] Auto-generating standard report...\")\n    subprocess.run([sys.executable, str(ROOT / \"scripts/generate_final_report.py\"), \"--model\", args.model])"
+        }
+    },
+    {
+        "function_id": "LiveCoder/method/memory/success/Astral/repo/astral/moon.py::_to_datetime_utc",
+        "caller": [
+            "LiveCoder\\method\\memory\\success\\Astral\\repo\\astral\\moon.py::phase"
+        ],
+        "callee": [],
+        "function_content": "def _to_datetime_utc(d: Optional[Union[datetime, date_cls]]) -> datetime:\r\n    if d is None:\r\n        return datetime.now(timezone.utc)\r\n    if isinstance(d, datetime):\r\n        if d.tzinfo is None:\r\n            # Assume naive datetimes are UTC for determinism\r\n            return d.replace(tzinfo=timezone.utc)\r\n        return d.astimezone(timezone.utc)\r\n    # date: use noon UTC to avoid boundary issues\r\n    return datetime(d.year, d.month, d.day, 12, 0, tzinfo=timezone.utc)",
+        "function_name": "_to_datetime_utc",
+        "file_path": "LiveCoder/method/memory/success/Astral/repo/astral/moon.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-835",
+                "description": "假设无时区信息的datetime为UTC，可能导致错误的时间解释和时间计算问题。",
+                "defect_index": 0.3,
+                "repair_rate": 0.85,
+                "impact_degree": 0.4
+            },
+            {
+                "defect_rate": 0.12,
+                "CWE_id": "CWE-688",
+                "description": "日期类型转换为时间时默认使用中午12点作为时间，可能导致时间边界处理不准确或异常情况未覆盖。",
+                "defect_index": 0.25,
+                "repair_rate": 0.8,
+                "impact_degree": 0.35
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.275,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.15,
+            "CWE_id": "CWE-835",
+            "description": "假设无时区信息的datetime为UTC，可能导致错误的时间解释和时间计算问题。",
+            "defect_index": 0.3,
+            "repair_rate": 0.85,
+            "impact_degree": 0.4
+        },
+        "repairs": {
+            "repair_advice": "修复建议是不再假设无时区信息的datetime对象为UTC，而是明确抛出异常，提示调用者提供明确的时区信息。这样可以避免因错误假设时区导致的时间解释和计算问题。",
+            "repair_patch": "- if d.tzinfo is None:\n-     # Assume naive datetimes are UTC for determinism\n-     return d.replace(tzinfo=timezone.utc)\n+ if d.tzinfo is None:\n+     raise ValueError('Naive datetime object passed without timezone info; please provide timezone-aware datetime.')",
+            "repair_code": "def _to_datetime_utc(d: Optional[Union[datetime, date_cls]]) -> datetime:\n    if d is None:\n        return datetime.now(timezone.utc)\n    if isinstance(d, datetime):\n        if d.tzinfo is None:\n            raise ValueError('Naive datetime object passed without timezone info; please provide timezone-aware datetime.')\n        return d.astimezone(timezone.utc)\n    # date: use noon UTC to avoid boundary issues\n    return datetime(d.year, d.month, d.day, 12, 0, tzinfo=timezone.utc)"
+        }
+    },
+    {
+        "function_id": "LiveCoder/method/memory/success/Astral/repo/astral/moon.py::phase",
+        "caller": [],
+        "callee": [
+            "LiveCoder\\method\\memory\\success\\Astral\\repo\\astral\\moon.py::_to_datetime_utc"
+        ],
+        "function_content": "def phase(d: Optional[Union[datetime, date_cls]] = None) -> float:\r\n    \"\"\"\r\n    Return the lunar phase as a float in [0, SYNODIC_MONTH),\r\n    where 0 is new moon, ~14.77 is full moon, etc.\r\n    \"\"\"\r\n    dt = _to_datetime_utc(d)\r\n    delta_days = (dt - REFERENCE_NEW_MOON).total_seconds() / 86400.0\r\n    # Normalize into [0, SYNODIC_MONTH)\r\n    ph = delta_days % SYNODIC_MONTH\r\n    # Ensure numeric stability near boundaries\r\n    if abs(ph - SYNODIC_MONTH) < 1e-9 or abs(ph) < 1e-9:\r\n        ph = 0.0\r\n    return float(ph)",
+        "function_name": "phase",
+        "file_path": "LiveCoder/method/memory/success/Astral/repo/astral/moon.py",
+        "language": "py",
+        "caller_num": 0,
+        "callee_num": 1,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-252",
+                "description": "缺少对输入参数d的有效性校验，可能导致在_to_datetime_utc函数中出现异常未被捕获。",
+                "defect_index": 0.4,
+                "repair_rate": 0.9,
+                "impact_degree": 0.3
+            },
+            {
+                "defect_rate": 0.1,
+                "CWE_id": "CWE-682",
+                "description": "对浮点数周期边界的处理依赖硬编码的1e-9阈值，可能导致数值不稳定或边界判断错误。",
+                "defect_index": 0.3,
+                "repair_rate": 0.75,
+                "impact_degree": 0.25
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.35,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.15,
+            "CWE_id": "CWE-252",
+            "description": "缺少对输入参数d的有效性校验，可能导致在_to_datetime_utc函数中出现异常未被捕获。",
+            "defect_index": 0.4,
+            "repair_rate": 0.9,
+            "impact_degree": 0.3
+        },
+        "repairs": {
+            "repair_advice": "为防止传入参数d无效导致_to_datetime_utc函数抛出异常，应该在调用前增加对参数d的有效性校验，确保d为期望的类型或为None，且捕获可能的异常，避免程序崩溃。",
+            "repair_patch": "- dt = _to_datetime_utc(d)\n+ try:\n+     dt = _to_datetime_utc(d)\n+ except Exception as e:\n+     raise ValueError(f\"Invalid input for date conversion: {d}\") from e",
+            "repair_code": "def phase(d: Optional[Union[datetime, date_cls]] = None) -> float:\n    \"\"\"\n    Return the lunar phase as a float in [0, SYNODIC_MONTH),\n    where 0 is new moon, ~14.77 is full moon, etc.\n    \"\"\"\n    try:\n        dt = _to_datetime_utc(d)\n    except Exception as e:\n        raise ValueError(f\"Invalid input for date conversion: {d}\") from e\n    delta_days = (dt - REFERENCE_NEW_MOON).total_seconds() / 86400.0\n    # Normalize into [0, SYNODIC_MONTH)\n    ph = delta_days % SYNODIC_MONTH\n    # Ensure numeric stability near boundaries\n    if abs(ph - SYNODIC_MONTH) < 1e-9 or abs(ph) < 1e-9:\n        ph = 0.0\n    return float(ph)"
+        }
+    },
+    {
+        "function_id": "LiveCoder/method/memory/success/Astral/repo/astral/sun.py::_to_zoneinfo",
+        "caller": [
+            "LiveCoder\\method\\memory\\success\\Astral\\repo\\astral\\sun.py::noon",
+            "LiveCoder\\method\\memory\\success\\Astral\\repo\\astral\\sun.py::_calc_time",
+            "LiveCoder\\method\\memory\\success\\Astral\\repo\\astral\\sun.py::_get_observer"
+        ],
+        "callee": [],
+        "function_content": "def _to_zoneinfo(tzinfo: Optional[Union[str, object]]) -> Optional[object]:\r\n    if tzinfo is None:\r\n        return None\r\n    if isinstance(tzinfo, str):\r\n        # Explicit timezone string provided: validate and raise if invalid\r\n        if ZoneInfo is None:\r\n            raise ValueError(f\"Invalid timezone (zoneinfo unavailable): {tzinfo}\")\r\n        try:\r\n            return ZoneInfo(tzinfo)\r\n        except Exception as e:\r\n            raise ValueError(f\"Invalid timezone: {tzinfo}\") from e\r\n    # Assume it's a tzinfo-like object\r\n    return tzinfo",
+        "function_name": "_to_zoneinfo",
+        "file_path": "LiveCoder/method/memory/success/Astral/repo/astral/sun.py",
+        "language": "py",
+        "caller_num": 3,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.18,
+                "CWE_id": "CWE-703",
+                "description": "未具体捕获ZoneInfo构造可能抛出的所有异常，异常处理过于笼统，可能导致隐藏其他潜在问题。",
+                "defect_index": 0.32,
+                "repair_rate": 0.85,
+                "impact_degree": 0.58
+            },
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-20",
+                "description": "对字符串时区的输入没有进行充分验证，依赖外部ZoneInfo抛出的异常，可能导致不可预期的无效输入处理。",
+                "defect_index": 0.25,
+                "repair_rate": 0.9,
+                "impact_degree": 0.55
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.28500000000000003,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.18,
+            "CWE_id": "CWE-703",
+            "description": "未具体捕获ZoneInfo构造可能抛出的所有异常，异常处理过于笼统，可能导致隐藏其他潜在问题。",
+            "defect_index": 0.32,
+            "repair_rate": 0.85,
+            "impact_degree": 0.58
+        },
+        "repairs": {
+            "repair_advice": "对 ZoneInfo 构造可能抛出的异常进行具体捕获，如 ZoneInfo NotFoundError 或 ZoneInfo KeyError，以避免因过于笼统捕获异常而隐藏其他潜在异常。",
+            "repair_patch": "-        try:\n-            return ZoneInfo(tzinfo)\n-        except Exception as e:\n-            raise ValueError(f\"Invalid timezone: {tzinfo}\") from e\n+        try:\n+            return ZoneInfo(tzinfo)\n+        except (ZoneInfo.KeyError, ZoneInfo.NotFoundError):\n+            raise ValueError(f\"Invalid timezone: {tzinfo}\")\n+        except Exception:\n+            raise",
+            "repair_code": "def _to_zoneinfo(tzinfo: Optional[Union[str, object]]) -> Optional[object]:\n    if tzinfo is None:\n        return None\n    if isinstance(tzinfo, str):\n        # Explicit timezone string provided: validate and raise if invalid\n        if ZoneInfo is None:\n            raise ValueError(f\"Invalid timezone (zoneinfo unavailable): {tzinfo}\")\n        try:\n            return ZoneInfo(tzinfo)\n        except (ZoneInfo.KeyError, ZoneInfo.NotFoundError):\n            raise ValueError(f\"Invalid timezone: {tzinfo}\")\n        except Exception:\n            raise\n    # Assume it's a tzinfo-like object\n    return tzinfo"
+        }
+    },
+    {
+        "function_id": "LiveCoder/method/memory/success/Astral/repo/astral/sun.py::_get_observer",
+        "caller": [
+            "LiveCoder\\method\\memory\\success\\Astral\\repo\\astral\\sun.py::noon",
+            "LiveCoder\\method\\memory\\success\\Astral\\repo\\astral\\sun.py::_calc_time"
+        ],
+        "callee": [
+            "LiveCoder\\method\\memory\\success\\Astral\\repo\\astral\\sun.py::_to_zoneinfo"
+        ],
+        "function_content": "def _get_observer(observer) -> tuple[float, float, float, Optional[object], Optional[str]]:\r\n    \"\"\"\r\n    Accept either an object with latitude/longitude (and optional timezone)\r\n    such as LocationInfo or Observer-like, and return a tuple of\r\n    (lat, lon, elevation, tzinfo_object_or_None, timezone_string_or_None).\r\n    \"\"\"\r\n    lat = getattr(observer, \"latitude\", None)\r\n    lon = getattr(observer, \"longitude\", None)\r\n    elev = getattr(observer, \"elevation\", 0.0)\r\n    tz_info = None\r\n    tz_name = None\r\n\r\n    # Support LocationInfo-like\r\n    if hasattr(observer, \"tzinfo\"):\r\n        try:\r\n            tz_info = observer.tzinfo  # type: ignore[attr-defined]\r\n        except Exception:\r\n            tz_info = None\r\n    if hasattr(observer, \"timezone\"):\r\n        try:\r\n            tz_name = observer.timezone  # type: ignore[attr-defined]\r\n            if isinstance(tz_name, str) and tz_info is None:\r\n                tz_info = _to_zoneinfo(tz_name)\r\n        except Exception:\r\n            tz_name = None\r\n\r\n    if lat is None or lon is None:\r\n        raise ValueError(\"observer must provide latitude and longitude\")\r\n\r\n    return float(lat), float(lon), float(elev or 0.0), tz_info, tz_name",
+        "function_name": "_get_observer",
+        "file_path": "LiveCoder/method/memory/success/Astral/repo/astral/sun.py",
+        "language": "py",
+        "caller_num": 2,
+        "callee_num": 1,
+        "defects": [
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-704",
+                "description": "对传入对象的属性latitude和longitude未做类型和范围校验，可能导致后续处理时出现异常或错误。",
+                "defect_index": 0.4,
+                "repair_rate": 0.95,
+                "impact_degree": 0.6
+            },
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-250",
+                "description": "try-except块捕获所有异常但未明确处理，可能掩盖潜在错误，导致难以发现隐藏问题。",
+                "defect_index": 0.35,
+                "repair_rate": 0.8,
+                "impact_degree": 0.55
+            },
+            {
+                "defect_rate": 0.12,
+                "CWE_id": "CWE-682",
+                "description": "未对传入的elevation值进行有效性检查，可能导致无效或异常的高度数据被使用。",
+                "defect_index": 0.3,
+                "repair_rate": 0.9,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.1,
+                "CWE_id": "CWE-20",
+                "description": "函数对observer参数缺乏严格的类型验证和边界检测，可能导致非法数据传入引发异常。",
+                "defect_index": 0.28,
+                "repair_rate": 0.85,
+                "impact_degree": 0.5
+            }
+        ],
+        "defect_num": 4,
+        "avg_defect_index": 0.3325,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.2,
+            "CWE_id": "CWE-704",
+            "description": "对传入对象的属性latitude和longitude未做类型和范围校验，可能导致后续处理时出现异常或错误。",
+            "defect_index": 0.4,
+            "repair_rate": 0.95,
+            "impact_degree": 0.6
+        },
+        "repairs": {
+            "repair_advice": "对 observer 的 latitude 和 longitude 属性进行类型和范围校验，确保它们是数字类型且位于合法的地理坐标范围内（纬度 -90 到 90， 经度 -180 到 180），避免后续转换为浮点数时因非法值导致异常或错误。",
+            "repair_patch": "-     lat = getattr(observer, \"latitude\", None)\n-     lon = getattr(observer, \"longitude\", None)\n+     lat = getattr(observer, \"latitude\", None)\n+     lon = getattr(observer, \"longitude\", None)\n\n-     if lat is None or lon is None:\n-         raise ValueError(\"observer must provide latitude and longitude\")\n+     if lat is None or lon is None:\n+         raise ValueError(\"observer must provide latitude and longitude\")\n+\n+     try:\n+         lat_f = float(lat)\n+     except (TypeError, ValueError):\n+         raise ValueError(f\"Invalid latitude value: {lat}\") from None\n+     try:\n+         lon_f = float(lon)\n+     except (TypeError, ValueError):\n+         raise ValueError(f\"Invalid longitude value: {lon}\") from None\n+\n+     if not (-90.0 <= lat_f <= 90.0):\n+         raise ValueError(f\"Latitude {lat_f} out of range (-90 to 90)\")\n+     if not (-180.0 <= lon_f <= 180.0):\n+         raise ValueError(f\"Longitude {lon_f} out of range (-180 to 180)\")\n\n-     return float(lat), float(lon), float(elev or 0.0), tz_info, tz_name\n+     return lat_f, lon_f, float(elev or 0.0), tz_info, tz_name",
+            "repair_code": "def _get_observer(observer) -> tuple[float, float, float, Optional[object], Optional[str]]:\n    \"\"\"\n    Accept either an object with latitude/longitude (and optional timezone)\n    such as LocationInfo or Observer-like, and return a tuple of\n    (lat, lon, elevation, tzinfo_object_or_None, timezone_string_or_None).\n    \"\"\"\n    lat = getattr(observer, \"latitude\", None)\n    lon = getattr(observer, \"longitude\", None)\n    elev = getattr(observer, \"elevation\", 0.0)\n    tz_info = None\n    tz_name = None\n\n    # Support LocationInfo-like\n    if hasattr(observer, \"tzinfo\"):\n        try:\n            tz_info = observer.tzinfo  # type: ignore[attr-defined]\n        except Exception:\n            tz_info = None\n    if hasattr(observer, \"timezone\"):\n        try:\n            tz_name = observer.timezone  # type: ignore[attr-defined]\n            if isinstance(tz_name, str) and tz_info is None:\n                tz_info = _to_zoneinfo(tz_name)\n        except Exception:\n            tz_name = None\n\n    if lat is None or lon is None:\n        raise ValueError(\"observer must provide latitude and longitude\")\n\n    try:\n        lat_f = float(lat)\n    except (TypeError, ValueError):\n        raise ValueError(f\"Invalid latitude value: {lat}\") from None\n    try:\n        lon_f = float(lon)\n    except (TypeError, ValueError):\n        raise ValueError(f\"Invalid longitude value: {lon}\") from None\n\n    if not (-90.0 <= lat_f <= 90.0):\n        raise ValueError(f\"Latitude {lat_f} out of range (-90 to 90)\")\n    if not (-180.0 <= lon_f <= 180.0):\n        raise ValueError(f\"Longitude {lon_f} out of range (-180 to 180)\")\n\n    return lat_f, lon_f, float(elev or 0.0), tz_info, tz_name"
+        }
+    },
+    {
+        "function_id": "LiveCoder/method/memory/success/Astral/repo/astral/sun.py::_normalize_date_input",
+        "caller": [
+            "LiveCoder\\method\\memory\\success\\Astral\\repo\\astral\\sun.py::noon",
+            "LiveCoder\\method\\memory\\success\\Astral\\repo\\astral\\sun.py::_calc_time"
+        ],
+        "callee": [],
+        "function_content": "def _normalize_date_input(d: Optional[Union[datetime, date_cls]], tz) -> date_cls:\r\n    \"\"\"\r\n    Interpret provided date in the given timezone for correct solar day.\r\n    \"\"\"\r\n    if d is None:\r\n        # Today's date in tz\r\n        if tz is None:\r\n            return datetime.now(timezone.utc).astimezone(timezone.utc).date()\r\n        now = datetime.now(tz)\r\n        return now.date()\r\n    if isinstance(d, datetime):\r\n        if d.tzinfo is None:\r\n            # Treat as naive in tz\r\n            if tz is not None:\r\n                d = d.replace(tzinfo=tz)\r\n            else:\r\n                d = d.replace(tzinfo=timezone.utc)\r\n        if tz is not None:\r\n            d = d.astimezone(tz)\r\n        else:\r\n            d = d.astimezone(timezone.utc)\r\n        return d.date()\r\n    # It's a date\r\n    return d",
+        "function_name": "_normalize_date_input",
+        "file_path": "LiveCoder/method/memory/success/Astral/repo/astral/sun.py",
+        "language": "py",
+        "caller_num": 2,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-835",
+                "description": "在处理时区时，使用tzinfo替换而非localize方法，可能导致时间计算错误。",
+                "defect_index": 0.35,
+                "repair_rate": 0.85,
+                "impact_degree": 0.45
+            },
+            {
+                "defect_rate": 0.1,
+                "CWE_id": "CWE-704",
+                "description": "缺少对传入参数tz类型和有效性的检查，可能导致异常或行为未定义。",
+                "defect_index": 0.3,
+                "repair_rate": 0.9,
+                "impact_degree": 0.4
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.32499999999999996,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.15,
+            "CWE_id": "CWE-835",
+            "description": "在处理时区时，使用tzinfo替换而非localize方法，可能导致时间计算错误。",
+            "defect_index": 0.35,
+            "repair_rate": 0.85,
+            "impact_degree": 0.45
+        },
+        "repairs": {
+            "repair_advice": "在处理时区转换时，应该使用 pytz 库的 localize 方法为无时区（naive）的 datetime 对象赋予时区，而不是直接替换 tzinfo 属性。直接替换可能导致时间错误。若 tz 是 pytz 的时区对象，应使用 tz.localize(d) 来赋时区，否则可使用 d.replace(tzinfo=tz)。",
+            "repair_patch": "- if d.tzinfo is None:\n-     # Treat as naive in tz\n-     if tz is not None:\n-         d = d.replace(tzinfo=tz)\n-     else:\n-         d = d.replace(tzinfo=timezone.utc)\n+ if d.tzinfo is None:\n+     # Treat as naive in tz\n+     if tz is not None:\n+         try:\n+             import pytz\n+             if hasattr(tz, 'localize'):\n+                 d = tz.localize(d)\n+             else:\n+                 d = d.replace(tzinfo=tz)\n+         except ImportError:\n+             d = d.replace(tzinfo=tz)\n+     else:\n+         d = d.replace(tzinfo=timezone.utc)",
+            "repair_code": "def _normalize_date_input(d: Optional[Union[datetime, date_cls]], tz) -> date_cls:\n    \"\"\"\n    Interpret provided date in the given timezone for correct solar day.\n    \"\"\"\n    if d is None:\n        # Today's date in tz\n        if tz is None:\n            return datetime.now(timezone.utc).astimezone(timezone.utc).date()\n        now = datetime.now(tz)\n        return now.date()\n    if isinstance(d, datetime):\n        if d.tzinfo is None:\n            # Treat as naive in tz\n            if tz is not None:\n                try:\n                    import pytz\n                    if hasattr(tz, 'localize'):\n                        d = tz.localize(d)\n                    else:\n                        d = d.replace(tzinfo=tz)\n                except ImportError:\n                    d = d.replace(tzinfo=tz)\n            else:\n                d = d.replace(tzinfo=timezone.utc)\n        if tz is not None:\n            d = d.astimezone(tz)\n        else:\n            d = d.astimezone(timezone.utc)\n        return d.date()\n    # It's a date\n    return d"
+        }
+    },
+    {
+        "function_id": "LiveCoder/method/memory/success/Astral/repo/astral/sun.py::_day_of_year",
+        "caller": [
+            "LiveCoder\\method\\memory\\success\\Astral\\repo\\astral\\sun.py::noon",
+            "LiveCoder\\method\\memory\\success\\Astral\\repo\\astral\\sun.py::_calc_time"
+        ],
+        "callee": [],
+        "function_content": "def _day_of_year(dt: date_cls) -> int:\r\n    return dt.timetuple().tm_yday",
+        "function_name": "_day_of_year",
+        "file_path": "LiveCoder/method/memory/success/Astral/repo/astral/sun.py",
+        "language": "py",
+        "caller_num": 2,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-704",
+                "description": "未验证输入日期对象的有效性，可能导致时间计算错误",
+                "defect_index": 0.25,
+                "repair_rate": 0.95,
+                "impact_degree": 0.4
+            },
+            {
+                "defect_rate": 0.1,
+                "CWE_id": "CWE-682",
+                "description": "返回值过于依赖外部对象属性，缺乏异常处理可能导致调用时崩溃",
+                "defect_index": 0.2,
+                "repair_rate": 0.9,
+                "impact_degree": 0.35
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.225,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.15,
+            "CWE_id": "CWE-704",
+            "description": "未验证输入日期对象的有效性，可能导致时间计算错误",
+            "defect_index": 0.25,
+            "repair_rate": 0.95,
+            "impact_degree": 0.4
+        },
+        "repairs": {
+            "repair_advice": "在计算日期是当年的第几天之前，应验证输入的日期对象是否有效且为datetime.date类型，避免因非法日期对象导致时间计算错误。",
+            "repair_patch": "- return dt.timetuple().tm_yday\n+ from datetime import date\n+ if not isinstance(dt, date):\n+     raise TypeError('Input must be a datetime.date instance.')\n+ try:\n+     return dt.timetuple().tm_yday\n+ except Exception as e:\n+     raise ValueError(f'Invalid date object provided: {e}')",
+            "repair_code": "def _day_of_year(dt: date_cls) -> int:\n    from datetime import date\n    if not isinstance(dt, date):\n        raise TypeError('Input must be a datetime.date instance.')\n    try:\n        return dt.timetuple().tm_yday\n    except Exception as e:\n        raise ValueError(f'Invalid date object provided: {e}')"
+        }
+    },
+    {
+        "function_id": "LiveCoder/method/memory/success/Astral/repo/astral/sun.py::_calc_event_utc_hour",
+        "caller": [
+            "LiveCoder\\method\\memory\\success\\Astral\\repo\\astral\\sun.py::_calc_time"
+        ],
+        "callee": [],
+        "function_content": "def _calc_event_utc_hour(lat_deg: float, lon_deg: float, day_of_year: int, zenith_deg: float, rising: bool) -> Optional[float]:\r\n    \"\"\"\r\n    NOAA sunrise/sunset algorithm returning UTC decimal hours for the event on the given day.\r\n    Returns None if the event does not occur (polar day/night).\r\n    \"\"\"\r\n    # Convert\r\n    lng_hour = lon_deg / 15.0\r\n    # Approximate time\r\n    if rising:\r\n        t = day_of_year + ((6.0 - lng_hour) / 24.0)\r\n    else:\r\n        t = day_of_year + ((18.0 - lng_hour) / 24.0)\r\n\r\n    # Sun's mean anomaly\r\n    M = (0.9856 * t) - 3.289\r\n\r\n    # Sun's true longitude\r\n    L = M + (1.916 * math.sin(math.radians(M))) + (0.020 * math.sin(math.radians(2 * M))) + 282.634\r\n    L = (L + 360.0) % 360.0\r\n\r\n    # Right ascension\r\n    RA = math.degrees(math.atan(0.91764 * math.tan(math.radians(L))))\r\n    RA = (RA + 360.0) % 360.0\r\n\r\n    # Quadrant adjustment\r\n    Lquadrant = (math.floor(L / 90.0)) * 90.0\r\n    RAquadrant = (math.floor(RA / 90.0)) * 90.0\r\n    RA = RA + (Lquadrant - RAquadrant)\r\n    RA /= 15.0  # hours\r\n\r\n    # Declination\r\n    sinDec = 0.39782 * math.sin(math.radians(L))\r\n    cosDec = math.cos(math.asin(sinDec))\r\n\r\n    # Sun local hour angle\r\n    cosH = (math.cos(math.radians(zenith_deg)) - (sinDec * math.sin(math.radians(lat_deg)))) / (cosDec * math.cos(math.radians(lat_deg)))\r\n\r\n    if cosH > 1.0:\r\n        # Sun never rises\r\n        return None\r\n    if cosH < -1.0:\r\n        # Sun never sets\r\n        return None\r\n\r\n    if rising:\r\n        H = 360.0 - math.degrees(math.acos(cosH))\r\n    else:\r\n        H = math.degrees(math.acos(cosH))\r\n    H /= 15.0  # hours\r\n\r\n    # Local mean time\r\n    T = H + RA - (0.06571 * t) - 6.622\r\n\r\n    # UTC time in hours\r\n    UT = (T - lng_hour) % 24.0\r\n    return UT",
+        "function_name": "_calc_event_utc_hour",
+        "file_path": "LiveCoder/method/memory/success/Astral/repo/astral/sun.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-681",
+                "description": "浮点数计算中可能出现精度误差，导致对太阳高度角余弦值cosH的边界判断产生错误，进而影响日出日落时间的准确性。",
+                "defect_index": 0.45,
+                "repair_rate": 0.85,
+                "impact_degree": 0.6
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-682",
+                "description": "输入参数未严格校验，特别是day_of_year未验证是否在有效范围（1-365或366）内，可能导致计算异常或逻辑错误。",
+                "defect_index": 0.35,
+                "repair_rate": 0.9,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-703",
+                "description": "在极端纬度情况下，函数返回None报警太阳极昼极夜，但缺少对调用者的异常处理提示，可能导致后续调用出现未处理的空指针访问问题。",
+                "defect_index": 0.3,
+                "repair_rate": 0.8,
+                "impact_degree": 0.55
+            },
+            {
+                "defect_rate": 0.1,
+                "CWE_id": "CWE-119",
+                "description": "该函数没有进行输入类型的严格约束和异常捕获，在传入非浮点数或非整数类型参数时，程序可能崩溃或异常。",
+                "defect_index": 0.25,
+                "repair_rate": 0.75,
+                "impact_degree": 0.4
+            }
+        ],
+        "defect_num": 4,
+        "avg_defect_index": 0.3375,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.25,
+            "CWE_id": "CWE-681",
+            "description": "浮点数计算中可能出现精度误差，导致对太阳高度角余弦值cosH的边界判断产生错误，进而影响日出日落时间的准确性。",
+            "defect_index": 0.45,
+            "repair_rate": 0.85,
+            "impact_degree": 0.6
+        },
+        "repairs": {
+            "repair_advice": "对于浮点数计算得到的余弦值cosH，可能因精度误差略超出[-1, 1]范围，导致math.acos函数抛出异常。修复方案是对cosH值进行边界校正，使其限制在[-1, 1]区间内，避免由于微小误差引起的边界判断错误，从而保证日出日落时间计算的准确性。",
+            "repair_patch": "    cosH = (math.cos(math.radians(zenith_deg)) - (sinDec * math.sin(math.radians(lat_deg)))) / (cosDec * math.cos(math.radians(lat_deg)))\n\n-    if cosH > 1.0:\n-        # Sun never rises\n-        return None\n-    if cosH < -1.0:\n-        # Sun never sets\n-        return None\n+\n+    # 修正cosH边界，防止浮点误差导致错误\n+    if cosH > 1.0:\n+        cosH = 1.0\n+    elif cosH < -1.0:\n+        cosH = -1.0",
+            "repair_code": "def _calc_event_utc_hour(lat_deg: float, lon_deg: float, day_of_year: int, zenith_deg: float, rising: bool) -> Optional[float]:\n    \"\"\"\n    NOAA sunrise/sunset algorithm returning UTC decimal hours for the event on the given day.\n    Returns None if the event does not occur (polar day/night).\n    \"\"\"\n    import math\n\n    # Convert\n    lng_hour = lon_deg / 15.0\n    # Approximate time\n    if rising:\n        t = day_of_year + ((6.0 - lng_hour) / 24.0)\n    else:\n        t = day_of_year + ((18.0 - lng_hour) / 24.0)\n\n    # Sun's mean anomaly\n    M = (0.9856 * t) - 3.289\n\n    # Sun's true longitude\n    L = M + (1.916 * math.sin(math.radians(M))) + (0.020 * math.sin(math.radians(2 * M))) + 282.634\n    L = (L + 360.0) % 360.0\n\n    # Right ascension\n    RA = math.degrees(math.atan(0.91764 * math.tan(math.radians(L))))\n    RA = (RA + 360.0) % 360.0\n\n    # Quadrant adjustment\n    Lquadrant = (math.floor(L / 90.0)) * 90.0\n    RAquadrant = (math.floor(RA / 90.0)) * 90.0\n    RA = RA + (Lquadrant - RAquadrant)\n    RA /= 15.0  # hours\n\n    # Declination\n    sinDec = 0.39782 * math.sin(math.radians(L))\n    cosDec = math.cos(math.asin(sinDec))\n\n    # Sun local hour angle\n    cosH = (math.cos(math.radians(zenith_deg)) - (sinDec * math.sin(math.radians(lat_deg)))) / (cosDec * math.cos(math.radians(lat_deg)))\n\n    # 修正cosH边界，防止浮点误差导致错误\n    if cosH > 1.0:\n        cosH = 1.0\n    elif cosH < -1.0:\n        cosH = -1.0\n\n    if cosH > 1.0:\n        # Sun never rises\n        return None\n    if cosH < -1.0:\n        # Sun never sets\n        return None\n\n    if rising:\n        H = 360.0 - math.degrees(math.acos(cosH))\n    else:\n        H = math.degrees(math.acos(cosH))\n    H /= 15.0  # hours\n\n    # Local mean time\n    T = H + RA - (0.06571 * t) - 6.622\n\n    # UTC time in hours\n    UT = (T - lng_hour) % 24.0\n    return UT"
+        }
+    },
+    {
+        "function_id": "LiveCoder/method/memory/success/Astral/repo/astral/sun.py::_equation_of_time_minutes",
+        "caller": [
+            "LiveCoder\\method\\memory\\success\\Astral\\repo\\astral\\sun.py::_solar_noon_utc_minutes"
+        ],
+        "callee": [],
+        "function_content": "def _equation_of_time_minutes(day_of_year: int) -> float:\r\n    g = 2.0 * math.pi * (day_of_year - 1) / 365.0\r\n    eqtime = 229.18 * (\r\n        0.000075\r\n        + 0.001868 * math.cos(g)\r\n        - 0.032077 * math.sin(g)\r\n        - 0.014615 * math.cos(2 * g)\r\n        - 0.040849 * math.sin(2 * g)\r\n    )\r\n    return eqtime",
+        "function_name": "_equation_of_time_minutes",
+        "file_path": "LiveCoder/method/memory/success/Astral/repo/astral/sun.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-20",
+                "description": "函数未对输入参数 day_of_year 进行有效性校验，可能导致异常或错误的计算结果。",
+                "defect_index": 0.3,
+                "repair_rate": 0.85,
+                "impact_degree": 0.4
+            }
+        ],
+        "defect_num": 1,
+        "avg_defect_index": 0.3,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.15,
+            "CWE_id": "CWE-20",
+            "description": "函数未对输入参数 day_of_year 进行有效性校验，可能导致异常或错误的计算结果。",
+            "defect_index": 0.3,
+            "repair_rate": 0.85,
+            "impact_degree": 0.4
+        },
+        "repairs": {
+            "repair_advice": "函数应验证输入参数 day_of_year 是否为整数且在合理范围（1到365）内，防止非法输入导致计算异常或错误结果。",
+            "repair_patch": "- def _equation_of_time_minutes(day_of_year: int) -> float:\n-    g = 2.0 * math.pi * (day_of_year - 1) / 365.0\n-    eqtime = 229.18 * (\n-        0.000075\n-        + 0.001868 * math.cos(g)\n-        - 0.032077 * math.sin(g)\n-        - 0.014615 * math.cos(2 * g)\n-        - 0.040849 * math.sin(2 * g)\n-    )\n-    return eqtime\n+ def _equation_of_time_minutes(day_of_year: int) -> float:\n+    if not isinstance(day_of_year, int) or not (1 <= day_of_year <= 365):\n+        raise ValueError(\"day_of_year must be an integer between 1 and 365 inclusive.\")\n+    g = 2.0 * math.pi * (day_of_year - 1) / 365.0\n+    eqtime = 229.18 * (\n+        0.000075\n+        + 0.001868 * math.cos(g)\n+        - 0.032077 * math.sin(g)\n+        - 0.014615 * math.cos(2 * g)\n+        - 0.040849 * math.sin(2 * g)\n+    )\n+    return eqtime",
+            "repair_code": "def _equation_of_time_minutes(day_of_year: int) -> float:\n    if not isinstance(day_of_year, int) or not (1 <= day_of_year <= 365):\n        raise ValueError(\"day_of_year must be an integer between 1 and 365 inclusive.\")\n    g = 2.0 * math.pi * (day_of_year - 1) / 365.0\n    eqtime = 229.18 * (\n        0.000075\n        + 0.001868 * math.cos(g)\n        - 0.032077 * math.sin(g)\n        - 0.014615 * math.cos(2 * g)\n        - 0.040849 * math.sin(2 * g)\n    )\n    return eqtime"
+        }
+    }
+]

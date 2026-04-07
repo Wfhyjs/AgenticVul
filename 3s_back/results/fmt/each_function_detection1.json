@@ -1,0 +1,1355 @@
+[
+    {
+        "function_id": "support/docopt.py::__init__",
+        "caller": [
+            "support\\docopt.py::__init__"
+        ],
+        "callee": [],
+        "function_content": "def __init__(self, source, error=DocoptExit):\r\n        self += source.split() if hasattr(source, 'split') else source\r\n        self.error = error",
+        "function_name": "__init__",
+        "file_path": "support/docopt.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-130",
+                "description": "该函数未对输入的长度限制进行检查，可能导致系统溢出或内存错误。",
+                "defect_index": 0.7,
+                "repair_rate": 0.85,
+                "impact_degree": 0.4
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-358",
+                "description": "函数的参数'docopt'可能无法正常处理类型不符合预期的输入，导致异常行为。",
+                "defect_index": 0.65,
+                "repair_rate": 0.75,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-476",
+                "description": "在调用self += source.split()时，未对self进行类型验证，可能引发类型错误。",
+                "defect_index": 0.6,
+                "repair_rate": 0.8,
+                "impact_degree": 0.3
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.65,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.25,
+            "CWE_id": "CWE-130",
+            "description": "该函数未对输入的长度限制进行检查，可能导致系统溢出或内存错误。",
+            "defect_index": 0.7,
+            "repair_rate": 0.85,
+            "impact_degree": 0.4
+        },
+        "repairs": {
+            "repair_advice": "在将源字符串拆分并添加到当前对象之前，应检查其长度，以避免潜在的内存溢出或错误。可以使用内置的长度函数对输入的源字符串进行验证。",
+            "repair_patch": "- self += source.split() if hasattr(source, 'split') else source\n+ if isinstance(source, str) and len(source) <= 1024:\n+     self += source.split() if hasattr(source, 'split') else source\n+ else:\n+     raise ValueError('Source input is too long or not a valid string.')",
+            "repair_code": "def __init__(self, source, error=DocoptExit):\n    if isinstance(source, str) and len(source) <= 1024:\n        self += source.split() if hasattr(source, 'split') else source\n    else:\n        raise ValueError('Source input is too long or not a valid string.')\n    self.error = error"
+        }
+    },
+    {
+        "function_id": "support/docopt.py::__eq__",
+        "caller": [],
+        "callee": [],
+        "function_content": "def __eq__(self, other):\r\n        return repr(self) == repr(other)",
+        "function_name": "__eq__",
+        "file_path": "support/docopt.py",
+        "language": "py",
+        "caller_num": 0,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.3,
+                "CWE_id": "CWE-603",
+                "description": "使用repr比较对象可能导致隐私信息泄露，例如包含敏感信息的字符串表现形式。",
+                "defect_index": 0.65,
+                "repair_rate": 0.75,
+                "impact_degree": 0.45
+            },
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-480",
+                "description": "使用repr可能导致对象内容不匹配的错误比较，即使对象实际上是相等的。",
+                "defect_index": 0.7,
+                "repair_rate": 0.85,
+                "impact_degree": 0.5
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.675,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.3,
+            "CWE_id": "CWE-603",
+            "description": "使用repr比较对象可能导致隐私信息泄露，例如包含敏感信息的字符串表现形式。",
+            "defect_index": 0.65,
+            "repair_rate": 0.75,
+            "impact_degree": 0.45
+        },
+        "repairs": {
+            "repair_advice": "应避免使用 repr 比较对象，以防止数据泄露，改为直接比较对象属性或其他安全的信息，以确保不暴露敏感信息。",
+            "repair_patch": "- return repr(self) == repr(other);\n+ return vars(self) == vars(other)",
+            "repair_code": "def __eq__(self, other):\n    return vars(self) == vars(other)"
+        }
+    },
+    {
+        "function_id": "support/docopt.py::__hash__",
+        "caller": [],
+        "callee": [],
+        "function_content": "def __hash__(self):\r\n        return hash(repr(self))",
+        "function_name": "__hash__",
+        "file_path": "support/docopt.py",
+        "language": "py",
+        "caller_num": 0,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-_HASH",
+                "description": "哈希冲突可能导致的不可预测的行为，影响对象的可哈希性。",
+                "defect_index": 0.45,
+                "repair_rate": 0.8,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.1,
+                "CWE_id": "CWE-400",
+                "description": "使用`repr(self)`生成的字符串可能不唯一，从而影响哈希表的性能。",
+                "defect_index": 0.6,
+                "repair_rate": 0.75,
+                "impact_degree": 0.45
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.525,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.15,
+            "CWE_id": "CWE-_HASH",
+            "description": "哈希冲突可能导致的不可预测的行为，影响对象的可哈希性。",
+            "defect_index": 0.45,
+            "repair_rate": 0.8,
+            "impact_degree": 0.5
+        },
+        "repairs": {
+            "repair_advice": "考虑使用更复杂的哈希算法来减少哈希冲突的概率，例如结合对象的多个属性以生成哈希值，确保哈希值的唯一性和分布性。",
+            "repair_patch": "- return hash(repr(self))\n+ return hash((self.attribute1, self.attribute2, ...))",
+            "repair_code": "def __hash__(self):\n    return hash((self.attribute1, self.attribute2, ...))"
+        }
+    },
+    {
+        "function_id": "support/docopt.py::fix",
+        "caller": [
+            "support\\docopt.py::docopt"
+        ],
+        "callee": [
+            "support\\docopt.py::fix_repeating_arguments",
+            "support\\docopt.py::fix_identities"
+        ],
+        "function_content": "def fix(self):\r\n        self.fix_identities()\r\n        self.fix_repeating_arguments()\r\n        return self",
+        "function_name": "fix",
+        "file_path": "support/docopt.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 2,
+        "defects": [
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-119",
+                "description": "可能存在的缓冲区溢出风险，未对输入数据进行验证。",
+                "defect_index": 0.35,
+                "repair_rate": 0.8,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.4,
+                "CWE_id": "CWE-121",
+                "description": "可能存在的内存搁置问题，由于未处理重复参数可能导致内存中的数据不一致。",
+                "defect_index": 0.9,
+                "repair_rate": 0.5,
+                "impact_degree": 0.7
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.625,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.4,
+            "CWE_id": "CWE-121",
+            "description": "可能存在的内存搁置问题，由于未处理重复参数可能导致内存中的数据不一致。",
+            "defect_index": 0.9,
+            "repair_rate": 0.5,
+            "impact_degree": 0.7
+        },
+        "repairs": {
+            "repair_advice": "在处理重复参数之前，应检查该参数是否已经存在，以避免内存中的数据不一致问题。",
+            "repair_patch": "- self.fix_repeating_arguments()\n+ if not self.has_repeating_arguments():\n+     self.fix_repeating_arguments()",
+            "repair_code": "def fix(self):\n    self.fix_identities()\n    if not self.has_repeating_arguments():\n        self.fix_repeating_arguments()\n    return self"
+        }
+    },
+    {
+        "function_id": "support/docopt.py::fix_identities",
+        "caller": [
+            "support\\docopt.py::fix_identities",
+            "support\\docopt.py::fix"
+        ],
+        "callee": [
+            "support\\docopt.py::fix_identities",
+            "support\\docopt.py::flat"
+        ],
+        "function_content": "def fix_identities(self, uniq=None):\r\n        \"\"\"Make pattern-tree tips point to same object if they are equal.\"\"\"\r\n        if not hasattr(self, 'children'):\r\n            return self\r\n        uniq = list(set(self.flat())) if uniq is None else uniq\r\n        for i, child in enumerate(self.children):\r\n            if not hasattr(child, 'children'):\r\n                assert child in uniq\r\n                self.children[i] = uniq[uniq.index(child)]\r\n            else:\r\n                child.fix_identities(uniq)",
+        "function_name": "fix_identities",
+        "file_path": "support/docopt.py",
+        "language": "py",
+        "caller_num": 2,
+        "callee_num": 2,
+        "defects": [
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-119",
+                "description": "该函数在处理children时，若children中指向相同对象，会导致意外的行为，如意外修改或删除对象。",
+                "defect_index": 0.5,
+                "repair_rate": 0.85,
+                "impact_degree": 0.3
+            },
+            {
+                "defect_rate": 0.3,
+                "CWE_id": "CWE-121",
+                "description": "此函数在访问children的索引时未考虑超出范围的情况，可能导致IndexError。",
+                "defect_index": 0.75,
+                "repair_rate": 0.6,
+                "impact_degree": 0.4
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-253",
+                "description": "在对uniq进行操作时，可能导致函数意外地影响外部状态，未做到封装。",
+                "defect_index": 0.45,
+                "repair_rate": 0.9,
+                "impact_degree": 0.35
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.5666666666666667,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.3,
+            "CWE_id": "CWE-121",
+            "description": "此函数在访问children的索引时未考虑超出范围的情况，可能导致IndexError。",
+            "defect_index": 0.75,
+            "repair_rate": 0.6,
+            "impact_degree": 0.4
+        },
+        "repairs": {
+            "repair_advice": "在访问索引前，应该验证索引是否超出范围，以避免 IndexError 错误。可以在使用 self.children[i] 之前先检查 i 是否在有效的范围内。",
+            "repair_patch": "- self.children[i] = uniq[uniq.index(child)]\n+ if i < len(self.children):\n+     self.children[i] = uniq[uniq.index(child)]",
+            "repair_code": "def fix_identities(self, uniq=None):\n    \"\"\"Make pattern-tree tips point to same object if they are equal.\"\"\"\n    if not hasattr(self, 'children'):\n        return self\n    uniq = list(set(self.flat())) if uniq is None else uniq\n    for i, child in enumerate(self.children):\n        if not hasattr(child, 'children'):\n            assert child in uniq\n            if i < len(self.children):\n                self.children[i] = uniq[uniq.index(child)]\n        else:\n            child.fix_identities(uniq)"
+        }
+    },
+    {
+        "function_id": "support/docopt.py::fix_repeating_arguments",
+        "caller": [
+            "support\\docopt.py::fix"
+        ],
+        "callee": [
+            "support\\docopt.py::transform"
+        ],
+        "function_content": "def fix_repeating_arguments(self):\r\n        \"\"\"Fix elements that should accumulate/increment values.\"\"\"\r\n        either = [list(child.children) for child in transform(self).children]\r\n        for case in either:\r\n            for e in [child for child in case if case.count(child) > 1]:\r\n                if type(e) is Argument or type(e) is Option and e.argcount:\r\n                    if e.value is None:\r\n                        e.value = []\r\n                    elif type(e.value) is not list:\r\n                        e.value = e.value.split()\r\n                if type(e) is Command or type(e) is Option and e.argcount == 0:\r\n                    e.value = 0\r\n        return self",
+        "function_name": "fix_repeating_arguments",
+        "file_path": "support/docopt.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 1,
+        "defects": [
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-476",
+                "description": "可能的空指针解引用，e.value未进行充分的检查",
+                "defect_index": 0.3,
+                "repair_rate": 0.85,
+                "impact_degree": 0.4
+            },
+            {
+                "defect_rate": 0.35,
+                "CWE_id": "CWE-129",
+                "description": "可能存在数组越界问题，case.count(child)可能导致不稳定行为",
+                "defect_index": 0.75,
+                "repair_rate": 0.6,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-200",
+                "description": "存在信息泄露风险，未检查e.value的来源",
+                "defect_index": 0.55,
+                "repair_rate": 0.7,
+                "impact_degree": 0.3
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.5333333333333333,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.35,
+            "CWE_id": "CWE-129",
+            "description": "可能存在数组越界问题，case.count(child)可能导致不稳定行为",
+            "defect_index": 0.75,
+            "repair_rate": 0.6,
+            "impact_degree": 0.5
+        },
+        "repairs": {
+            "repair_advice": "在使用 case.count(child) 之前，首先确保 case 中的每个 child 都是有效的，以避免引发数组越界或不稳定行为。可以利用 collections.Counter 来更安全地计算重复元素。",
+            "repair_patch": "- for e in [child for child in case if case.count(child) > 1]:\n+ from collections import Counter\n+ counts = Counter(case)\n+ for e in counts:\n+     if counts[e] > 1:",
+            "repair_code": "def fix_repeating_arguments(self):\n        \"\"\"Fix elements that should accumulate/increment values.\"\"\"\n        either = [list(child.children) for child in transform(self).children]\n        from collections import Counter\n        for case in either:\n            counts = Counter(case)\n            for e in counts:\n                if counts[e] > 1:\n                    if type(e) is Argument or type(e) is Option and e.argcount:\n                        if e.value is None:\n                            e.value = []\n                        elif type(e.value) is not list:\n                            e.value = e.value.split()\n                    if type(e) is Command or type(e) is Option and e.argcount == 0:\n                        e.value = 0\n        return self"
+        }
+    },
+    {
+        "function_id": "support/docopt.py::transform",
+        "caller": [
+            "support\\docopt.py::fix_repeating_arguments"
+        ],
+        "callee": [],
+        "function_content": "def transform(pattern):\r\n    \"\"\"Expand pattern into an (almost) equivalent one, but with single Either.\r\n\r\n    Example: ((-a | -b) (-c | -d)) => (-a -c | -a -d | -b -c | -b -d)\r\n    Quirks: [-a] => (-a), (-a...) => (-a -a)\r\n\r\n    \"\"\"\r\n    result = []\r\n    groups = [[pattern]]\r\n    while groups:\r\n        children = groups.pop(0)\r\n        parents = [Required, Optional, OptionsShortcut, Either, OneOrMore]\r\n        if any(t in map(type, children) for t in parents):\r\n            child = [c for c in children if type(c) in parents][0]\r\n            children.remove(child)\r\n            if type(child) is Either:\r\n                for c in child.children:\r\n                    groups.append([c] + children)\r\n            elif type(child) is OneOrMore:\r\n                groups.append(child.children * 2 + children)\r\n            else:\r\n                groups.append(child.children + children)\r\n        else:\r\n            result.append(children)\r\n    return Either(*[Required(*e) for e in result])",
+        "function_name": "transform",
+        "file_path": "support/docopt.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-775",
+                "description": "可能存在无限递归的风险，导致栈溢出。",
+                "defect_index": 0.65,
+                "repair_rate": 0.8,
+                "impact_degree": 0.3
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-404",
+                "description": "可能未处理输入数据的异常情况，导致未定义行为。",
+                "defect_index": 0.75,
+                "repair_rate": 0.7,
+                "impact_degree": 0.4
+            },
+            {
+                "defect_rate": 0.35,
+                "CWE_id": "CWE-367",
+                "description": "函数并未考虑线程安全，可能在多线程环境下出现竞态条件。",
+                "defect_index": 0.9,
+                "repair_rate": 0.5,
+                "impact_degree": 0.5
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.7666666666666666,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.35,
+            "CWE_id": "CWE-367",
+            "description": "函数并未考虑线程安全，可能在多线程环境下出现竞态条件。",
+            "defect_index": 0.9,
+            "repair_rate": 0.5,
+            "impact_degree": 0.5
+        },
+        "repairs": {
+            "repair_advice": "为了使函数在多线程环境中安全，使用 threading.Lock() 来保护共享数据结构，以防止竞态条件。",
+            "repair_patch": "+ import threading\n\n+ lock = threading.Lock()\n+\n+    with lock:\n+        result = []\n+        groups = [[pattern]]\n+        while groups:\n+            children = groups.pop(0)\n+            parents = [Required, Optional, OptionsShortcut, Either, OneOrMore]\n+            if any(t in map(type, children) for t in parents):\n+                child = [c for c in children if type(c) in parents][0]\n+                children.remove(child)\n+                if type(child) is Either:\n+                    for c in child.children:\n+                        groups.append([c] + children)\n+                elif type(child) is OneOrMore:\n+                    groups.append(child.children * 2 + children)\n+                else:\n+                    groups.append(child.children + children)\n+            else:\n+                result.append(children)\n+        return Either(*[Required(*e) for e in result])",
+            "repair_code": "import threading\n\nlock = threading.Lock()\n\ndef transform(pattern):\n    \"\"\"Expand pattern into an (almost) equivalent one, but with single Either.\n\n    Example: ((-a | -b) (-c | -d)) => (-a -c | -a -d | -b -c | -b -d)\n    Quirks: [-a] => (-a), (-a...) => (-a -a)\n\n    \"\"\"\n    with lock:\n        result = []\n        groups = [[pattern]]\n        while groups:\n            children = groups.pop(0)\n            parents = [Required, Optional, OptionsShortcut, Either, OneOrMore]\n            if any(t in map(type, children) for t in parents):\n                child = [c for c in children if type(c) in parents][0]\n                children.remove(child)\n                if type(child) is Either:\n                    for c in child.children:\n                        groups.append([c] + children)\n                elif type(child) is OneOrMore:\n                    groups.append(child.children * 2 + children)\n                else:\n                    groups.append(child.children + children)\n            else:\n                result.append(children)\n        return Either(*[Required(*e) for e in result])"
+        }
+    },
+    {
+        "function_id": "support/docopt.py::__repr__",
+        "caller": [],
+        "callee": [],
+        "function_content": "def __repr__(self):\r\n        return '{%s}' % ',\\n '.join('%r: %r' % i for i in sorted(self.items()))",
+        "function_name": "__repr__",
+        "file_path": "support/docopt.py",
+        "language": "py",
+        "caller_num": 0,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-200",
+                "description": "不安全的输出格式化，可能导致信息泄露。",
+                "defect_index": 0.6,
+                "repair_rate": 0.7,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.35,
+                "CWE_id": "CWE-134",
+                "description": "格式化字符串引起的输出问题，可能导致程序崩溃。",
+                "defect_index": 0.75,
+                "repair_rate": 0.6,
+                "impact_degree": 0.4
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.675,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.35,
+            "CWE_id": "CWE-134",
+            "description": "格式化字符串引起的输出问题，可能导致程序崩溃。",
+            "defect_index": 0.75,
+            "repair_rate": 0.6,
+            "impact_degree": 0.4
+        },
+        "repairs": {
+            "repair_advice": "使用安全的字符串格式化方法，例如使用 str.format()，以避免格式化字符串引发的输出问题。",
+            "repair_patch": "- return '{%s}' % ',\n '.join('%r: %r' % i for i in sorted(self.items()))\n+ return '{' + ',\n '.join('{}: {}'.format(repr(k), repr(v)) for k, v in sorted(self.items())) + '}'",
+            "repair_code": "def __repr__(self):\n    return '{' + ',\n '.join('{}: {}'.format(repr(k), repr(v)) for k, v in sorted(self.items())) + '}'"
+        }
+    },
+    {
+        "function_id": "support/docopt.py::flat",
+        "caller": [
+            "support\\docopt.py::docopt",
+            "support\\docopt.py::flat",
+            "support\\docopt.py::fix_identities"
+        ],
+        "callee": [
+            "support\\docopt.py::flat"
+        ],
+        "function_content": "def flat(self, *types):\r\n        if type(self) in types:\r\n            return [self]\r\n        return sum([child.flat(*types) for child in self.children], [])",
+        "function_name": "flat",
+        "file_path": "support/docopt.py",
+        "language": "py",
+        "caller_num": 3,
+        "callee_num": 1,
+        "defects": [
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-400",
+                "description": "可能导致无限递归或栈溢出，尤其是在树结构非常深或存在循环引用的情况下。",
+                "defect_index": 0.85,
+                "repair_rate": 0.7,
+                "impact_degree": 0.6
+            },
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-172",
+                "description": "缺少类型检查，可能导致 Unexpected Data Type 的问题。",
+                "defect_index": 0.65,
+                "repair_rate": 0.8,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.1,
+                "CWE_id": "CWE-703",
+                "description": "可能在处理空 children 列表时导致错误。",
+                "defect_index": 0.3,
+                "repair_rate": 0.95,
+                "impact_degree": 0.4
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.6,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.2,
+            "CWE_id": "CWE-400",
+            "description": "可能导致无限递归或栈溢出，尤其是在树结构非常深或存在循环引用的情况下。",
+            "defect_index": 0.85,
+            "repair_rate": 0.7,
+            "impact_degree": 0.6
+        },
+        "repairs": {
+            "repair_advice": "在递归调用之前，需要增加循环检测，避免无限递归和栈溢出问题。可以通过跟踪已访问的节点来实现，确保不会访问已访问的节点。",
+            "repair_patch": "- return sum([child.flat(*types) for child in self.children], []);\n+ visited = set()\n+ def helper(node):\n+     if node in visited:\n+         return []\n+     visited.add(node)\n+     result = []\n+     if type(node) in types:\n+         result.append(node)\n+     for child in node.children:\n+         result.extend(helper(child))\n+     return result\n+ return helper(self)",
+            "repair_code": "def flat(self, *types):\n    visited = set()\n    def helper(node):\n        if node in visited:\n            return []\n        visited.add(node)\n        result = []\n        if type(node) in types:\n            result.append(node)\n        for child in node.children:\n            result.extend(helper(child))\n        return result\n    return helper(self)"
+        }
+    },
+    {
+        "function_id": "support/docopt.py::match",
+        "caller": [
+            "support\\docopt.py::docopt",
+            "support\\docopt.py::match"
+        ],
+        "callee": [
+            "support\\docopt.py::match"
+        ],
+        "function_content": "def match(self, left, collected=None):\r\n        collected = [] if collected is None else collected\r\n        outcomes = []\r\n        for pattern in self.children:\r\n            matched, _, _ = outcome = pattern.match(left, collected)\r\n            if matched:\r\n                outcomes.append(outcome)\r\n        if outcomes:\r\n            return min(outcomes, key=lambda outcome: len(outcome[1]))\r\n        return False, left, collected",
+        "function_name": "match",
+        "file_path": "support/docopt.py",
+        "language": "py",
+        "caller_num": 2,
+        "callee_num": 1,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-119",
+                "description": "函数可能存在缓冲区溢出漏洞，特别是在收集输入内容时未进行有效的长度检查。",
+                "defect_index": 0.34,
+                "repair_rate": 0.85,
+                "impact_degree": 0.6
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-121",
+                "description": "可能存在不安全的输入处理，尤其是在处理模式匹配时未考虑到输入的边界条件。",
+                "defect_index": 0.9,
+                "repair_rate": 0.75,
+                "impact_degree": 0.7
+            },
+            {
+                "defect_rate": 0.12,
+                "CWE_id": "CWE-134",
+                "description": "未对输出进行适当的验证，尤其是在最小化结果时可能引发注入攻击。",
+                "defect_index": 0.5,
+                "repair_rate": 0.8,
+                "impact_degree": 0.4
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.58,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.2,
+            "CWE_id": "CWE-121",
+            "description": "可能存在不安全的输入处理，尤其是在处理模式匹配时未考虑到输入的边界条件。",
+            "defect_index": 0.9,
+            "repair_rate": 0.75,
+            "impact_degree": 0.7
+        },
+        "repairs": {
+            "repair_advice": "在处理输入参数时应添加边界检查，确保左侧参数'left'及'collected'符合预期的边界条件，以避免潜在的输入溢出或不安全情况。",
+            "repair_patch": "- outcomes.append(outcome);\n+ if isinstance(outcome, tuple) and len(outcome) == 3:\n+     outcomes.append(outcome)",
+            "repair_code": "def match(self, left, collected=None):\n        collected = [] if collected is None else collected\n        outcomes = []\n        for pattern in self.children:\n            matched, _, _ = outcome = pattern.match(left, collected)\n            if matched and isinstance(outcome, tuple) and len(outcome) == 3:\n                outcomes.append(outcome)\n        if outcomes:\n            return min(outcomes, key=lambda outcome: len(outcome[1]))\n        return False, left, collected"
+        }
+    },
+    {
+        "function_id": "support/docopt.py::single_match",
+        "caller": [
+            "support\\docopt.py::match"
+        ],
+        "callee": [],
+        "function_content": "def single_match(self, left):\r\n        for n, pattern in enumerate(left):\r\n            if self.name == pattern.name:\r\n                return n, pattern\r\n        return None, None",
+        "function_name": "single_match",
+        "file_path": "support/docopt.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-476",
+                "description": "可能存在的逻辑错误，未处理模式列表为空的情况",
+                "defect_index": 0.4,
+                "repair_rate": 0.85,
+                "impact_degree": 0.3
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-708",
+                "description": "函数可能未正确处理不符合预期的类型或值",
+                "defect_index": 0.5,
+                "repair_rate": 0.7,
+                "impact_degree": 0.4
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.45,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.2,
+            "CWE_id": "CWE-708",
+            "description": "函数可能未正确处理不符合预期的类型或值",
+            "defect_index": 0.5,
+            "repair_rate": 0.7,
+            "impact_degree": 0.4
+        },
+        "repairs": {
+            "repair_advice": "在匹配模式之前，应该验证输入 'left' 是否为可迭代对象，并且其中的每个元素具有 'name' 属性，以避免不期望的异常或错误。",
+            "repair_patch": "- for n, pattern in enumerate(left):\n+ if not hasattr(left, '__iter__'):\n+     raise TypeError('left must be an iterable.')\n+ for n, pattern in enumerate(left):\n+     if not hasattr(pattern, 'name'):\n+         raise ValueError('Every element in left must have a name attribute.')",
+            "repair_code": "def single_match(self, left):\n    if not hasattr(left, '__iter__'):\n        raise TypeError('left must be an iterable.')\n    for n, pattern in enumerate(left):\n        if not hasattr(pattern, 'name'):\n            raise ValueError('Every element in left must have a name attribute.')\n        if self.name == pattern.name:\n            return n, pattern\n    return None, None"
+        }
+    },
+    {
+        "function_id": "support/docopt.py::parse",
+        "caller": [
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::collect",
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::__init__",
+            "support\\docopt.py::parse_defaults",
+            "support\\python\\mkdocstrings_handlers\\cxx\\__init__.py::collect_compound"
+        ],
+        "callee": [],
+        "function_content": "def parse(class_, option_description):\r\n        short, long, argcount, value = None, None, 0, False\r\n        options, _, description = option_description.strip().partition('  ')\r\n        options = options.replace(',', ' ').replace('=', ' ')\r\n        for s in options.split():\r\n            if s.startswith('--'):\r\n                long = s\r\n            elif s.startswith('-'):\r\n                short = s\r\n            else:\r\n                argcount = 1\r\n        if argcount:\r\n            matched = re.findall('\\[default: (.*)\\]', description, flags=re.I)\r\n            value = matched[0] if matched else None\r\n        return class_(short, long, argcount, value)",
+        "function_name": "parse",
+        "file_path": "support/docopt.py",
+        "language": "py",
+        "caller_num": 4,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-20",
+                "description": "未对输入参数进行有效性验证，可能导致意外的情况或恶意输入造成的逻辑错误。",
+                "defect_index": 0.7,
+                "repair_rate": 0.85,
+                "impact_degree": 0.3
+            },
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-306",
+                "description": "函数中的正则表达式解析可能导致对敏感数据的泄露。",
+                "defect_index": 0.65,
+                "repair_rate": 0.6,
+                "impact_degree": 0.4
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-470",
+                "description": "解析得到的值未进行类型检查，可能导致类型错误或异常情况。",
+                "defect_index": 0.5,
+                "repair_rate": 0.7,
+                "impact_degree": 0.35
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.6166666666666667,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.25,
+            "CWE_id": "CWE-306",
+            "description": "函数中的正则表达式解析可能导致对敏感数据的泄露。",
+            "defect_index": 0.65,
+            "repair_rate": 0.6,
+            "impact_degree": 0.4
+        },
+        "repairs": {
+            "repair_advice": "在描述中匹配默认值之前，应该确保不会泄露敏感数据，并改进正则表达式以限制匹配范围。建议使用更严格的条件来提取默认值，并避免直接返回匹配项。",
+            "repair_patch": "- value = matched[0] if matched else None\n+ value = matched[0] if matched and not is_sensitive_data(matched[0]) else None\n+ \n+ def is_sensitive_data(value):\n+     # 检查值是否包含敏感信息的逻辑\n+     return False",
+            "repair_code": "import re\n\ndef parse(class_, option_description):\n    short, long, argcount, value = None, None, 0, False\n    options, _, description = option_description.strip().partition('  ')\n    options = options.replace(',', ' ').replace('=', ' ')\n    for s in options.split():\n        if s.startswith('--'):\n            long = s\n        elif s.startswith('-'):\n            short = s\n        else:\n            argcount = 1\n    if argcount:\n        matched = re.findall('\\[default: (.*)\\]', description, flags=re.I)\n        value = matched[0] if matched and not is_sensitive_data(matched[0]) else None\n    return class_(short, long, argcount, value)\n\n\ndef is_sensitive_data(value):\n    # 检查值是否包含敏感信息的逻辑\n    return False"
+        }
+    },
+    {
+        "function_id": "support/docopt.py::name",
+        "caller": [],
+        "callee": [],
+        "function_content": "def name(self):\r\n        return self.long or self.short",
+        "function_name": "name",
+        "file_path": "support/docopt.py",
+        "language": "py",
+        "caller_num": 0,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-480",
+                "description": "未能正确处理属性缺失的情况，可能导致返回None。此行为在后续处理中可能导致异常。",
+                "defect_index": 0.4,
+                "repair_rate": 0.85,
+                "impact_degree": 0.3
+            },
+            {
+                "defect_rate": 0.1,
+                "CWE_id": "CWE-200",
+                "description": "未对long和short属性进行任何防护或类型检查，可能导致返回不期望的值。",
+                "defect_index": 0.25,
+                "repair_rate": 0.7,
+                "impact_degree": 0.2
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.325,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.15,
+            "CWE_id": "CWE-480",
+            "description": "未能正确处理属性缺失的情况，可能导致返回None。此行为在后续处理中可能导致异常。",
+            "defect_index": 0.4,
+            "repair_rate": 0.85,
+            "impact_degree": 0.3
+        },
+        "repairs": {
+            "repair_advice": "在处理 long 和 short 属性之前，应该检查它们是否存在，确保不会返回 None，从而避免后续处理中的异常。",
+            "repair_patch": "- return self.long or self.short\n+ if self.long is not None:\n+     return self.long\n+ elif self.short is not None:\n+     return self.short\n+ else:\n+     raise ValueError('Both long and short attributes are missing.')",
+            "repair_code": "def name(self):\n    if self.long is not None:\n        return self.long\n    elif self.short is not None:\n        return self.short\n    else:\n        raise ValueError('Both long and short attributes are missing.')"
+        }
+    },
+    {
+        "function_id": "support/docopt.py::from_pattern",
+        "caller": [
+            "support\\docopt.py::parse_pattern"
+        ],
+        "callee": [],
+        "function_content": "def from_pattern(source):\r\n        source = re.sub(r'([\\[\\]\\(\\)\\|]|\\.\\.\\.)', r' \\1 ', source)\r\n        source = [s for s in re.split('\\s+|(\\S*<.*?>)', source) if s]\r\n        return Tokens(source, error=DocoptLanguageError)",
+        "function_name": "from_pattern",
+        "file_path": "support/docopt.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-134",
+                "description": "未考虑输入源中的特定字符，可能导致不一致的解析结果。",
+                "defect_index": 0.3,
+                "repair_rate": 0.87,
+                "impact_degree": 0.2
+            },
+            {
+                "defect_rate": 0.22,
+                "CWE_id": "CWE-20",
+                "description": "未对外部输入进行严格验证，可能导致注入或解析错误。",
+                "defect_index": 0.65,
+                "repair_rate": 0.75,
+                "impact_degree": 0.5
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.475,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.22,
+            "CWE_id": "CWE-20",
+            "description": "未对外部输入进行严格验证，可能导致注入或解析错误。",
+            "defect_index": 0.65,
+            "repair_rate": 0.75,
+            "impact_degree": 0.5
+        },
+        "repairs": {
+            "repair_advice": "在处理外部输入之前，应验证输入的结构和类型，以避免注入和解析错误。可以使用正则表达式或其他手段对输入进行格式检查。",
+            "repair_patch": "- return Tokens(source, error=DocoptLanguageError)\n+ if isinstance(source, str) and re.match(r'^[^<>]*$', source):\n+     return Tokens(source, error=DocoptLanguageError)\n+ else:\n+     raise ValueError('Invalid input format')",
+            "repair_code": "def from_pattern(source):\n    if isinstance(source, str) and re.match(r'^[^<>]*$', source):\n        source = re.sub(r'([\\[\\]()|]|\\.\\.)', r' \\1 ', source)\n        source = [s for s in re.split('\\s+|(\\S*<.*?>)', source) if s]\n        return Tokens(source, error=DocoptLanguageError)\n    else:\n        raise ValueError('Invalid input format')"
+        }
+    },
+    {
+        "function_id": "support/docopt.py::move",
+        "caller": [
+            "support\\docopt.py::parse_expr",
+            "support\\docopt.py::parse_long",
+            "support\\docopt.py::parse_argv",
+            "support\\docopt.py::parse_seq",
+            "support\\docopt.py::parse_shorts",
+            "support\\docopt.py::parse_atom"
+        ],
+        "callee": [],
+        "function_content": "def move(self):\r\n        return self.pop(0) if len(self) else None",
+        "function_name": "move",
+        "file_path": "support/docopt.py",
+        "language": "py",
+        "caller_num": 6,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.3,
+                "CWE_id": "CWE-130",
+                "description": "函数在处理空列表时返回 None，可能导致调用方未正确处理返回值。",
+                "defect_index": 0.4,
+                "repair_rate": 0.8,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-672",
+                "description": "函数未对错误的自定义数据类（self）的类型进行验证，可能导致崩溃或读取无效数据。",
+                "defect_index": 0.55,
+                "repair_rate": 0.75,
+                "impact_degree": 0.6
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.47500000000000003,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.3,
+            "CWE_id": "CWE-130",
+            "description": "函数在处理空列表时返回 None，可能导致调用方未正确处理返回值。",
+            "defect_index": 0.4,
+            "repair_rate": 0.8,
+            "impact_degree": 0.5
+        },
+        "repairs": {
+            "repair_advice": "在处理空列表时，应该抛出一个适当的异常而不是返回 None，这样可以确保调用方能够正确地处理该情况。",
+            "repair_patch": "- return self.pop(0) if len(self) else None\n+ if len(self) == 0:\n+     raise IndexError('Attempted to move from an empty list.')\n+ return self.pop(0)",
+            "repair_code": "def move(self):\n    if len(self) == 0:\n        raise IndexError('Attempted to move from an empty list.')\n    return self.pop(0)"
+        }
+    },
+    {
+        "function_id": "support/docopt.py::current",
+        "caller": [
+            "support\\docopt.py::parse_expr",
+            "support\\docopt.py::parse_long",
+            "support\\docopt.py::parse_pattern",
+            "support\\docopt.py::parse_argv",
+            "support\\docopt.py::parse_atom",
+            "support\\docopt.py::parse_seq",
+            "support\\docopt.py::parse_shorts"
+        ],
+        "callee": [],
+        "function_content": "def current(self):\r\n        return self[0] if len(self) else None",
+        "function_name": "current",
+        "file_path": "support/docopt.py",
+        "language": "py",
+        "caller_num": 7,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE- IndexError",
+                "description": "该函数在访问self[0]时，未验证self是否为空，可能导致索引越界错误。",
+                "defect_index": 0.6,
+                "repair_rate": 0.85,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-202",
+                "description": "该函数在返回None时，没有明确的错误处理逻辑，可能导致上层函数处理时出现问题。",
+                "defect_index": 0.4,
+                "repair_rate": 0.9,
+                "impact_degree": 0.4
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.5,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.25,
+            "CWE_id": "CWE- IndexError",
+            "description": "该函数在访问self[0]时，未验证self是否为空，可能导致索引越界错误。",
+            "defect_index": 0.6,
+            "repair_rate": 0.85,
+            "impact_degree": 0.5
+        },
+        "repairs": {
+            "repair_advice": "在访问self[0]之前，应检查self是否为空，以避免索引越界错误。可以通过检查self的长度或直接验证self的真值来实现这一点。",
+            "repair_patch": "- return self[0] if len(self) else None\n+ if len(self) > 0:\n+     return self[0]\n+ else:\n+     return None",
+            "repair_code": "def current(self):\n    if len(self) > 0:\n        return self[0]\n    else:\n        return None"
+        }
+    },
+    {
+        "function_id": "support/docopt.py::parse_long",
+        "caller": [
+            "support\\docopt.py::parse_argv",
+            "support\\docopt.py::parse_atom"
+        ],
+        "callee": [
+            "support\\docopt.py::current",
+            "support\\docopt.py::move"
+        ],
+        "function_content": "def parse_long(tokens, options):\r\n    \"\"\"long ::= '--' chars [ ( ' ' | '=' ) chars ] ;\"\"\"\r\n    long, eq, value = tokens.move().partition('=')\r\n    assert long.startswith('--')\r\n    value = None if eq == value == '' else value\r\n    similar = [o for o in options if o.long == long]\r\n    if tokens.error is DocoptExit and similar == []:  # if no exact match\r\n        similar = [o for o in options if o.long and o.long.startswith(long)]\r\n    if len(similar) > 1:  # might be simply specified ambiguously 2+ times?\r\n        raise tokens.error('%s is not a unique prefix: %s?' %\r\n                           (long, ', '.join(o.long for o in similar)))\r\n    elif len(similar) < 1:\r\n        argcount = 1 if eq == '=' else 0\r\n        o = Option(None, long, argcount)\r\n        options.append(o)\r\n        if tokens.error is DocoptExit:\r\n            o = Option(None, long, argcount, value if argcount else True)\r\n    else:\r\n        o = Option(similar[0].short, similar[0].long,\r\n                   similar[0].argcount, similar[0].value)\r\n        if o.argcount == 0:\r\n            if value is not None:\r\n                raise tokens.error('%s must not have an argument' % o.long)\r\n        else:\r\n            if value is None:\r\n                if tokens.current() in [None, '--']:\r\n                    raise tokens.error('%s requires argument' % o.long)\r\n                value = tokens.move()\r\n        if tokens.error is DocoptExit:\r\n            o.value = value if value is not None else True\r\n    return [o]",
+        "function_name": "parse_long",
+        "file_path": "support/docopt.py",
+        "language": "py",
+        "caller_num": 2,
+        "callee_num": 2,
+        "defects": [
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-119",
+                "description": "可能存在缓冲区溢出风险，尤其是在处理长参数输入时。",
+                "defect_index": 0.45,
+                "repair_rate": 0.85,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.3,
+                "CWE_id": "CWE-641",
+                "description": "可能存在前缀匹配错误，尤其是当多个选项以相同前缀开始时。",
+                "defect_index": 0.65,
+                "repair_rate": 0.75,
+                "impact_degree": 0.6
+            },
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-476",
+                "description": "函数在处理无效参数时，可能导致意外的程序行为。",
+                "defect_index": 0.7,
+                "repair_rate": 0.8,
+                "impact_degree": 0.55
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.6,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.3,
+            "CWE_id": "CWE-641",
+            "description": "可能存在前缀匹配错误，尤其是当多个选项以相同前缀开始时。",
+            "defect_index": 0.65,
+            "repair_rate": 0.75,
+            "impact_degree": 0.6
+        },
+        "repairs": {
+            "repair_advice": "在查找以给定前缀开头的选项之前，确保只考虑那些完整的选项，避免前缀匹配错误。增加对相似选项数量的检测以提供更为精确的反馈。",
+            "repair_patch": "- similar = [o for o in options if o.long == long]\n+ similar = [o for o in options if o.long == long]\n+ if not similar:\n+     similar = [o for o in options if o.long.startswith(long) and long != o.long]",
+            "repair_code": "def parse_long(tokens, options):\n    long, eq, value = tokens.move().partition('=')\n    assert long.startswith('--')\n    value = None if eq == value == '' else value\n    similar = [o for o in options if o.long == long]\n    if tokens.error is DocoptExit and similar == []:\n        similar = [o for o in options if o.long.startswith(long) and long != o.long]\n    if len(similar) > 1:\n        raise tokens.error('%s is not a unique prefix: %s?' %\n                           (long, ', '.join(o.long for o in similar)))\n    elif len(similar) < 1:\n        argcount = 1 if eq == '=' else 0\n        o = Option(None, long, argcount)\n        options.append(o)\n        if tokens.error is DocoptExit:\n            o = Option(None, long, argcount, value if argcount else True)\n    else:\n        o = Option(similar[0].short, similar[0].long,\n                   similar[0].argcount, similar[0].value)\n        if o.argcount == 0:\n            if value is not None:\n                raise tokens.error('%s must not have an argument' % o.long)\n        else:\n            if value is None:\n                if tokens.current() in [None, '--']:\n                    raise tokens.error('%s requires argument' % o.long)\n                value = tokens.move()\n        if tokens.error is DocoptExit:\n            o.value = value if value is not None else True\n    return [o]"
+        }
+    },
+    {
+        "function_id": "support/docopt.py::parse_shorts",
+        "caller": [
+            "support\\docopt.py::parse_argv",
+            "support\\docopt.py::parse_atom"
+        ],
+        "callee": [
+            "support\\docopt.py::current",
+            "support\\docopt.py::move"
+        ],
+        "function_content": "def parse_shorts(tokens, options):\r\n    \"\"\"shorts ::= '-' ( chars )* [ [ ' ' ] chars ] ;\"\"\"\r\n    token = tokens.move()\r\n    assert token.startswith('-') and not token.startswith('--')\r\n    left = token.lstrip('-')\r\n    parsed = []\r\n    while left != '':\r\n        short, left = '-' + left[0], left[1:]\r\n        similar = [o for o in options if o.short == short]\r\n        if len(similar) > 1:\r\n            raise tokens.error('%s is specified ambiguously %d times' %\r\n                               (short, len(similar)))\r\n        elif len(similar) < 1:\r\n            o = Option(short, None, 0)\r\n            options.append(o)\r\n            if tokens.error is DocoptExit:\r\n                o = Option(short, None, 0, True)\r\n        else:  # why copying is necessary here?\r\n            o = Option(short, similar[0].long,\r\n                       similar[0].argcount, similar[0].value)\r\n            value = None\r\n            if o.argcount != 0:\r\n                if left == '':\r\n                    if tokens.current() in [None, '--']:\r\n                        raise tokens.error('%s requires argument' % short)\r\n                    value = tokens.move()\r\n                else:\r\n                    value = left\r\n                    left = ''\r\n            if tokens.error is DocoptExit:\r\n                o.value = value if value is not None else True\r\n        parsed.append(o)\r\n    return parsed",
+        "function_name": "parse_shorts",
+        "file_path": "support/docopt.py",
+        "language": "py",
+        "caller_num": 2,
+        "callee_num": 2,
+        "defects": [
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-20",
+                "description": "输入验证不足，可能导致不受信任的输入被处理。",
+                "defect_index": 0.65,
+                "repair_rate": 0.85,
+                "impact_degree": 0.7
+            },
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-476",
+                "description": "包含未初始化的变量或在特定情况下未赋值的变量，可能引发运行时错误。",
+                "defect_index": 0.55,
+                "repair_rate": 0.75,
+                "impact_degree": 0.6
+            },
+            {
+                "defect_rate": 0.3,
+                "CWE_id": "CWE-118",
+                "description": "错误的错误处理，可能导致程序在出错时未能及时停止或报告问题。",
+                "defect_index": 0.8,
+                "repair_rate": 0.5,
+                "impact_degree": 0.65
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.6666666666666666,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.3,
+            "CWE_id": "CWE-118",
+            "description": "错误的错误处理，可能导致程序在出错时未能及时停止或报告问题。",
+            "defect_index": 0.8,
+            "repair_rate": 0.5,
+            "impact_degree": 0.65
+        },
+        "repairs": {
+            "repair_advice": "在函数中添加适当的错误处理和退出机制，以确保在发生错误时能够及时停止程序，并提供清晰的错误信息。",
+            "repair_patch": "- raise tokens.error('%s requires argument' % short)\n+ raise tokens.error('%s requires argument' % short)\n+ exit(1)  # 提供错误处理以终止程序\n\n- return parsed\n+ return parsed\n+ # 其他错误情况\n+ else:\n+     raise ValueError('Unhandled case occurred, check input tokens')\n+     exit(1)",
+            "repair_code": "def parse_shorts(tokens, options):\n    token = tokens.move()\n    assert token.startswith('-') and not token.startswith('--')\n    left = token.lstrip('-')\n    parsed = []\n    while left != '':\n        short, left = '-' + left[0], left[1:]\n        similar = [o for o in options if o.short == short]\n        if len(similar) > 1:\n            raise tokens.error('%s is specified ambiguously %d times' % (short, len(similar)))\n        elif len(similar) < 1:\n            o = Option(short, None, 0)\n            options.append(o)\n            if tokens.error is DocoptExit:\n                o = Option(short, None, 0, True)\n        else:\n            o = Option(short, similar[0].long, similar[0].argcount, similar[0].value)\n            value = None\n            if o.argcount != 0:\n                if left == '':\n                    if tokens.current() in [None, '--']:\n                        raise tokens.error('%s requires argument' % short)\n                        exit(1)  # 提供错误处理以终止程序\n                    value = tokens.move()\n                else:\n                    value = left\n                    left = ''\n            if tokens.error is DocoptExit:\n                o.value = value if value is not None else True\n    return parsed\n    # 其他错误情况\n    else:\n        raise ValueError('Unhandled case occurred, check input tokens')\n        exit(1)"
+        }
+    },
+    {
+        "function_id": "support/docopt.py::parse_pattern",
+        "caller": [
+            "support\\docopt.py::docopt"
+        ],
+        "callee": [
+            "support\\docopt.py::parse_expr",
+            "support\\docopt.py::current",
+            "support\\docopt.py::from_pattern"
+        ],
+        "function_content": "def parse_pattern(source, options):\r\n    tokens = Tokens.from_pattern(source)\r\n    result = parse_expr(tokens, options)\r\n    if tokens.current() is not None:\r\n        raise tokens.error('unexpected ending: %r' % ' '.join(tokens))\r\n    return Required(*result)",
+        "function_name": "parse_pattern",
+        "file_path": "support/docopt.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 3,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-119",
+                "description": "潜在的缓冲区溢出风险，特别是如果tokens来源于不受信任的输入。",
+                "defect_index": 0.45,
+                "repair_rate": 0.75,
+                "impact_degree": 0.3
+            },
+            {
+                "defect_rate": 0.22,
+                "CWE_id": "CWE-20",
+                "description": "输入验证不足，可能导致注入攻击。",
+                "defect_index": 0.65,
+                "repair_rate": 0.65,
+                "impact_degree": 0.4
+            },
+            {
+                "defect_rate": 0.3,
+                "CWE_id": "CWE-476",
+                "description": "未正确处理tokens.error的异常，可能导致信息泄露。",
+                "defect_index": 0.85,
+                "repair_rate": 0.5,
+                "impact_degree": 0.6
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.65,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.3,
+            "CWE_id": "CWE-476",
+            "description": "未正确处理tokens.error的异常，可能导致信息泄露。",
+            "defect_index": 0.85,
+            "repair_rate": 0.5,
+            "impact_degree": 0.6
+        },
+        "repairs": {
+            "repair_advice": "在处理 tokens.error 的异常时，应该记录错误信息并避免直接抛出可能泄露信息的异常。可以使用更安全的错误处理逻辑来防止信息泄露，具体是将错误信息记录到日志或以非具体化的方式提示用户。",
+            "repair_patch": "- raise tokens.error('unexpected ending: %r' % ' '.join(tokens))\n+ raise ValueError('unexpected ending in pattern parsing')",
+            "repair_code": "def parse_pattern(source, options):\n    tokens = Tokens.from_pattern(source)\n    result = parse_expr(tokens, options)\n    if tokens.current() is not None:\n        raise ValueError('unexpected ending in pattern parsing')\n    return Required(*result)"
+        }
+    },
+    {
+        "function_id": "support/docopt.py::parse_expr",
+        "caller": [
+            "support\\docopt.py::parse_pattern",
+            "support\\docopt.py::parse_atom"
+        ],
+        "callee": [
+            "support\\docopt.py::current",
+            "support\\docopt.py::parse_seq",
+            "support\\docopt.py::move"
+        ],
+        "function_content": "def parse_expr(tokens, options):\r\n    \"\"\"expr ::= seq ( '|' seq )* ;\"\"\"\r\n    seq = parse_seq(tokens, options)\r\n    if tokens.current() != '|':\r\n        return seq\r\n    result = [Required(*seq)] if len(seq) > 1 else seq\r\n    while tokens.current() == '|':\r\n        tokens.move()\r\n        seq = parse_seq(tokens, options)\r\n        result += [Required(*seq)] if len(seq) > 1 else seq\r\n    return [Either(*result)] if len(result) > 1 else result",
+        "function_name": "parse_expr",
+        "file_path": "support/docopt.py",
+        "language": "py",
+        "caller_num": 2,
+        "callee_num": 3,
+        "defects": [
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-119",
+                "description": "可能存在的缓冲区溢出漏洞，导致非法的内存访问。",
+                "defect_index": 0.35,
+                "repair_rate": 0.85,
+                "impact_degree": 0.4
+            },
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-121",
+                "description": "在处理`tokens`时未进行充分的边界检查，可能导致访问未分配的内存。",
+                "defect_index": 0.9,
+                "repair_rate": 0.5,
+                "impact_degree": 0.55
+            },
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-130",
+                "description": "在解析过程中可能未考虑输入的合法性，导致未定义行为。",
+                "defect_index": 0.3,
+                "repair_rate": 0.7,
+                "impact_degree": 0.35
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.5166666666666667,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.25,
+            "CWE_id": "CWE-121",
+            "description": "在处理`tokens`时未进行充分的边界检查，可能导致访问未分配的内存。",
+            "defect_index": 0.9,
+            "repair_rate": 0.5,
+            "impact_degree": 0.55
+        },
+        "repairs": {
+            "repair_advice": "在处理 tokens 时，应该添加边界检查以确保不访问未分配的内存，避免出现越界访问的情况。",
+            "repair_patch": "- seq = parse_seq(tokens, options)\n+ if not tokens.has_more():\n+     return []  # 或者返回一个合适的默认值\n+ seq = parse_seq(tokens, options)\n if tokens.current() != '|':\n",
+            "repair_code": "def parse_expr(tokens, options):\n    \"\"\"expr ::= seq ( '|' seq )* ;\"\"\"\n    if not tokens.has_more():\n        return []  # 或者返回一个合适的默认值\n    seq = parse_seq(tokens, options)\n    if tokens.current() != '|':\n        return seq\n    result = [Required(*seq)] if len(seq) > 1 else seq\n    while tokens.current() == '|':\n        tokens.move()\n        if not tokens.has_more():\n            break\n        seq = parse_seq(tokens, options)\n        result += [Required(*seq)] if len(seq) > 1 else seq\n    return [Either(*result)] if len(result) > 1 else result"
+        }
+    },
+    {
+        "function_id": "support/docopt.py::parse_seq",
+        "caller": [
+            "support\\docopt.py::parse_expr"
+        ],
+        "callee": [
+            "support\\docopt.py::current",
+            "support\\docopt.py::parse_atom",
+            "support\\docopt.py::move"
+        ],
+        "function_content": "def parse_seq(tokens, options):\r\n    \"\"\"seq ::= ( atom [ '...' ] )* ;\"\"\"\r\n    result = []\r\n    while tokens.current() not in [None, ']', ')', '|']:\r\n        atom = parse_atom(tokens, options)\r\n        if tokens.current() == '...':\r\n            atom = [OneOrMore(*atom)]\r\n            tokens.move()\r\n        result += atom\r\n    return result",
+        "function_name": "parse_seq",
+        "file_path": "support/docopt.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 3,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-116",
+                "description": "该函数没有对输入的tokens进行有效性验证，可能导致在解析过程中出现Unexpected token错误。",
+                "defect_index": 0.5,
+                "repair_rate": 0.85,
+                "impact_degree": 0.3
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-130",
+                "description": "在处理atom的解析时，可能会导致未处理的异常情况，影响程序稳定性。",
+                "defect_index": 0.7,
+                "repair_rate": 0.6,
+                "impact_degree": 0.45
+            },
+            {
+                "defect_rate": 0.3,
+                "CWE_id": "CWE-135",
+                "description": "当前处理过程中没有限制输入tokens的深度，可能导致栈溢出问题。",
+                "defect_index": 0.85,
+                "repair_rate": 0.55,
+                "impact_degree": 0.5
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.6833333333333332,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.3,
+            "CWE_id": "CWE-135",
+            "description": "当前处理过程中没有限制输入tokens的深度，可能导致栈溢出问题。",
+            "defect_index": 0.85,
+            "repair_rate": 0.55,
+            "impact_degree": 0.5
+        },
+        "repairs": {
+            "repair_advice": "在解析输入的 tokens 时，应该限制递归的深度或检测栈的使用，以防止栈溢出问题。可以通过设定最大递归深度来实现。",
+            "repair_patch": "- result += atom\n+     if len(result) > MAX_DEPTH:\n+         raise RecursionError('Maximum parsing depth exceeded')\n",
+            "repair_code": "def parse_seq(tokens, options):\n    MAX_DEPTH = 1000  # 设置最大解析深度\n    result = []\n    while tokens.current() not in [None, ']', ')', '|']:\n        atom = parse_atom(tokens, options)\n        if tokens.current() == '...':\n            atom = [OneOrMore(*atom)]\n            tokens.move()\n        if len(result) > MAX_DEPTH:\n            raise RecursionError('Maximum parsing depth exceeded')\n        result += atom\n    return result"
+        }
+    },
+    {
+        "function_id": "support/docopt.py::parse_atom",
+        "caller": [
+            "support\\docopt.py::parse_seq"
+        ],
+        "callee": [
+            "support\\docopt.py::parse_expr",
+            "support\\docopt.py::parse_long",
+            "support\\docopt.py::move",
+            "support\\docopt.py::current",
+            "support\\docopt.py::parse_shorts"
+        ],
+        "function_content": "def parse_atom(tokens, options):\r\n    \"\"\"atom ::= '(' expr ')' | '[' expr ']' | 'options'\r\n             | long | shorts | argument | command ;\r\n    \"\"\"\r\n    token = tokens.current()\r\n    result = []\r\n    if token in '([':\r\n        tokens.move()\r\n        matching, pattern = {'(': [')', Required], '[': [']', Optional]}[token]\r\n        result = pattern(*parse_expr(tokens, options))\r\n        if tokens.move() != matching:\r\n            raise tokens.error(\"unmatched '%s'\" % token)\r\n        return [result]\r\n    elif token == 'options':\r\n        tokens.move()\r\n        return [OptionsShortcut()]\r\n    elif token.startswith('--') and token != '--':\r\n        return parse_long(tokens, options)\r\n    elif token.startswith('-') and token not in ('-', '--'):\r\n        return parse_shorts(tokens, options)\r\n    elif token.startswith('<') and token.endswith('>') or token.isupper():\r\n        return [Argument(tokens.move())]\r\n    else:\r\n        return [Command(tokens.move())]",
+        "function_name": "parse_atom",
+        "file_path": "support/docopt.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 5,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-476",
+                "description": "函数未处理未匹配的括号情况，这可能导致未定义行为。",
+                "defect_index": 0.3,
+                "repair_rate": 0.85,
+                "impact_degree": 0.2
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-611",
+                "description": "当传入的 token 格式不符合预期时，可能引发异常，未进行充分的输入验证。",
+                "defect_index": 0.5,
+                "repair_rate": 0.75,
+                "impact_degree": 0.3
+            }
+        ],
+        "defect_num": 2,
+        "avg_defect_index": 0.4,
+        "avg_defect_level": "低风险",
+        "main_defect": {
+            "defect_rate": 0.2,
+            "CWE_id": "CWE-611",
+            "description": "当传入的 token 格式不符合预期时，可能引发异常，未进行充分的输入验证。",
+            "defect_index": 0.5,
+            "repair_rate": 0.75,
+            "impact_degree": 0.3
+        },
+        "repairs": {
+            "repair_advice": "在调用 parse_expr 和其他函数之前，应该对 tokens.current() 的值进行验证, 确保其符合预期的 token 格式，以避免引发异常。",
+            "repair_patch": "if token in '([':\n+    if token not in {'(', '[', 'options'}:\n+        raise ValueError(f'Unexpected token: {token}')",
+            "repair_code": "def parse_atom(tokens, options):\n    token = tokens.current()\n    if token not in {'(', '[', 'options'}:\n        raise ValueError(f'Unexpected token: {token}')\n    result = []\n    if token in '([':\n        tokens.move()\n        matching, pattern = {'(': [')', Required], '[': [']', Optional]}[token]\n        result = pattern(*parse_expr(tokens, options))\n        if tokens.move() != matching:\n            raise tokens.error(\"unmatched '%s'\" % token)\n        return [result]\n    elif token == 'options':\n        tokens.move()\n        return [OptionsShortcut()]\n    elif token.startswith('--') and token != '--':\n        return parse_long(tokens, options)\n    elif token.startswith('-') and token not in ('-', '--'):\n        return parse_shorts(tokens, options)\n    elif token.startswith('<') and token.endswith('>') or token.isupper():\n        return [Argument(tokens.move())]\n    else:\n        return [Command(tokens.move())]"
+        }
+    },
+    {
+        "function_id": "support/docopt.py::parse_argv",
+        "caller": [
+            "support\\docopt.py::docopt"
+        ],
+        "callee": [
+            "support\\docopt.py::current",
+            "support\\docopt.py::parse_long",
+            "support\\docopt.py::move",
+            "support\\docopt.py::parse_shorts"
+        ],
+        "function_content": "def parse_argv(tokens, options, options_first=False):\r\n    \"\"\"Parse command-line argument vector.\r\n\r\n    If options_first:\r\n        argv ::= [ long | shorts ]* [ argument ]* [ '--' [ argument ]* ] ;\r\n    else:\r\n        argv ::= [ long | shorts | argument ]* [ '--' [ argument ]* ] ;\r\n\r\n    \"\"\"\r\n    parsed = []\r\n    while tokens.current() is not None:\r\n        if tokens.current() == '--':\r\n            return parsed + [Argument(None, v) for v in tokens]\r\n        elif tokens.current().startswith('--'):\r\n            parsed += parse_long(tokens, options)\r\n        elif tokens.current().startswith('-') and tokens.current() != '-':\r\n            parsed += parse_shorts(tokens, options)\r\n        elif options_first:\r\n            return parsed + [Argument(None, v) for v in tokens]\r\n        else:\r\n            parsed.append(Argument(None, tokens.move()))\r\n    return parsed",
+        "function_name": "parse_argv",
+        "file_path": "support/docopt.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 4,
+        "defects": [
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-119",
+                "description": "函数在处理输入时未对边界条件进行严格检查，可能导致缓冲区溢出。",
+                "defect_index": 0.35,
+                "repair_rate": 0.85,
+                "impact_degree": 0.22
+            },
+            {
+                "defect_rate": 0.4,
+                "CWE_id": "CWE-121",
+                "description": "在解析命令行参数时，没有正确处理输入数据，可能导致缓冲区溢出。",
+                "defect_index": 0.9,
+                "repair_rate": 0.5,
+                "impact_degree": 0.75
+            },
+            {
+                "defect_rate": 0.3,
+                "CWE_id": "CWE-200",
+                "description": "该函数未对异常情况进行适当处理，可能导致程序崩溃或不可预测的行为。",
+                "defect_index": 0.7,
+                "repair_rate": 0.6,
+                "impact_degree": 0.65
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.65,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.4,
+            "CWE_id": "CWE-121",
+            "description": "在解析命令行参数时，没有正确处理输入数据，可能导致缓冲区溢出。",
+            "defect_index": 0.9,
+            "repair_rate": 0.5,
+            "impact_degree": 0.75
+        },
+        "repairs": {
+            "repair_advice": "在解析命令行参数时，需要添加边界检查以确保输入的 tokens 不会导致缓冲区溢出，从而避免 CWE-121 漏洞。可以通过对每个 token 的长度进行检查，确保不会向列表添加超过设定限制的 Argument。",
+            "repair_patch": "- parsed.append(Argument(None, tokens.move()))\n+ token = tokens.move()\n+ if len(token) <= MAX_ARGUMENT_LENGTH:\n+     parsed.append(Argument(None, token))\n+ else:\n+     raise ValueError('Argument exceeds maximum length.');",
+            "repair_code": "def parse_argv(tokens, options, options_first=False):\n    parsed = []\n    MAX_ARGUMENT_LENGTH = 256  # Example length limit\n    while tokens.current() is not None:\n        if tokens.current() == '--':\n            return parsed + [Argument(None, v) for v in tokens]\n        elif tokens.current().startswith('--'):\n            parsed += parse_long(tokens, options)\n        elif tokens.current().startswith('-') and tokens.current() != '-':\n            parsed += parse_shorts(tokens, options)\n        elif options_first:\n            return parsed + [Argument(None, v) for v in tokens]\n        else:\n            token = tokens.move()\n            if len(token) <= MAX_ARGUMENT_LENGTH:\n                parsed.append(Argument(None, token))\n            else:\n                raise ValueError('Argument exceeds maximum length.')\n    return parsed"
+        }
+    },
+    {
+        "function_id": "support/docopt.py::parse_defaults",
+        "caller": [
+            "support\\docopt.py::docopt"
+        ],
+        "callee": [
+            "support\\docopt.py::parse_section",
+            "support\\docopt.py::parse"
+        ],
+        "function_content": "def parse_defaults(doc):\r\n    defaults = []\r\n    for s in parse_section('options:', doc):\r\n        # FIXME corner case \"bla: options: --foo\"\r\n        _, _, s = s.partition(':')  # get rid of \"options:\"\r\n        split = re.split('\\n[ \\t]*(-\\S+?)', '\\n' + s)[1:]\r\n        split = [s1 + s2 for s1, s2 in zip(split[::2], split[1::2])]\r\n        options = [Option.parse(s) for s in split if s.startswith('-')]\r\n        defaults += options\r\n    return defaults",
+        "function_name": "parse_defaults",
+        "file_path": "support/docopt.py",
+        "language": "py",
+        "caller_num": 1,
+        "callee_num": 2,
+        "defects": [
+            {
+                "defect_rate": 0.25,
+                "CWE_id": "CWE-121",
+                "description": "该函数在处理输入不当时可能导致缓冲区溢出，尤其是在解析选项的字符串时。",
+                "defect_index": 0.85,
+                "repair_rate": 0.7,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.15,
+                "CWE_id": "CWE-130",
+                "description": "在处理选项字符串分割时，可能导致数组越界访问，特别是当输入格式不符合预期时。",
+                "defect_index": 0.65,
+                "repair_rate": 0.8,
+                "impact_degree": 0.3
+            },
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE-132",
+                "description": "未合理处理不合法的选项格式，可能导致函数返回值不符合预期，进而引发后续逻辑错误。",
+                "defect_index": 0.75,
+                "repair_rate": 0.85,
+                "impact_degree": 0.4
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.75,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.25,
+            "CWE_id": "CWE-121",
+            "description": "该函数在处理输入不当时可能导致缓冲区溢出，尤其是在解析选项的字符串时。",
+            "defect_index": 0.85,
+            "repair_rate": 0.7,
+            "impact_degree": 0.5
+        },
+        "repairs": {
+            "repair_advice": "在解析选项字符串之前，需要对输入的字符串长度进行检查，以防止缓冲区溢出。增加长度限制将确保不会尝试解析过长的字符串，这样可以防止缓冲区溢出的问题。",
+            "repair_patch": "- split = re.split('\\n[ \\t]*(-\\S+?)', '\\n' + s)[1:];\n+ if len(s) > MAX_LENGTH:\n+     raise ValueError('Input string too long.');\n+ split = re.split('\\n[ \\t]*(-\\S+?)', '\\n' + s)[1:];",
+            "repair_code": "def parse_defaults(doc):\n    defaults = []\n    MAX_LENGTH = 1024  # 设定一个最大长度限制\n    for s in parse_section('options:', doc):\n        _, _, s = s.partition(':')  # get rid of 'options:'\n        if len(s) > MAX_LENGTH:\n            raise ValueError('Input string too long.');\n        split = re.split('\\n[ \\t]*(-\\S+?)', '\\n' + s)[1:]\n        split = [s1 + s2 for s1, s2 in zip(split[::2], split[1::2])]\n        options = [Option.parse(s) for s in split if s.startswith('-')]\n        defaults += options\n    return defaults"
+        }
+    },
+    {
+        "function_id": "support/docopt.py::parse_section",
+        "caller": [
+            "support\\docopt.py::docopt",
+            "support\\docopt.py::parse_defaults"
+        ],
+        "callee": [],
+        "function_content": "def parse_section(name, source):\r\n    pattern = re.compile('^([^\\n]*' + name + '[^\\n]*\\n?(?:[ \\t].*?(?:\\n|$))*)',\r\n                         re.IGNORECASE | re.MULTILINE)\r\n    return [s.strip() for s in pattern.findall(source)]",
+        "function_name": "parse_section",
+        "file_path": "support/docopt.py",
+        "language": "py",
+        "caller_num": 2,
+        "callee_num": 0,
+        "defects": [
+            {
+                "defect_rate": 0.2,
+                "CWE_id": "CWE- regex injection",
+                "description": "该函数使用正则表达式来解析输入，但没有对输入数据进行适当的验证，可能导致正则表达式注入攻击。",
+                "defect_index": 0.75,
+                "repair_rate": 0.85,
+                "impact_degree": 0.6
+            },
+            {
+                "defect_rate": 0.35,
+                "CWE_id": "CWE-20",
+                "description": "未对输入的源字符串进行有效性检查，可能导致意外的解析结果或程序崩溃。",
+                "defect_index": 0.7,
+                "repair_rate": 0.9,
+                "impact_degree": 0.5
+            },
+            {
+                "defect_rate": 0.3,
+                "CWE_id": "CWE-122",
+                "description": "存在缓冲区溢出风险，尤其在处理大输入数据时，可能导致系统崩溃或安全漏洞。",
+                "defect_index": 0.8,
+                "repair_rate": 0.75,
+                "impact_degree": 0.55
+            }
+        ],
+        "defect_num": 3,
+        "avg_defect_index": 0.75,
+        "avg_defect_level": "高风险",
+        "main_defect": {
+            "defect_rate": 0.35,
+            "CWE_id": "CWE-20",
+            "description": "未对输入的源字符串进行有效性检查，可能导致意外的解析结果或程序崩溃。",
+            "defect_index": 0.7,
+            "repair_rate": 0.9,
+            "impact_degree": 0.5
+        },
+        "repairs": {
+            "repair_advice": "在执行正则表达式匹配之前，应该验证输入的源字符串是否为有效的字符串类型，以避免意外的解析结果或程序崩溃。",
+            "repair_patch": "- return [s.strip() for s in pattern.findall(source)]\n+ if isinstance(source, str):\n+     return [s.strip() for s in pattern.findall(source)]\n+ else:\n+     raise ValueError(\"Source must be a valid string.\")",
+            "repair_code": "def parse_section(name, source):\n    pattern = re.compile('^([^\n]*' + name + '[^\n]*\\n?(?:[ \\t].*?(?:\\n|$))*)', re.IGNORECASE | re.MULTILINE)\n    if isinstance(source, str):\n        return [s.strip() for s in pattern.findall(source)]\n    else:\n        raise ValueError(\"Source must be a valid string.\")"
+        }
+    }
+]

@@ -1,0 +1,94 @@
+[
+    {
+        "function_id": "arm-asm.c::asm_parse_vfp_regvar",
+        "caller": [
+            "arm-asm.c::parse_operand",
+            "arm-asm.c::asm_floating_point_block_data_transfer_opcode"
+        ],
+        "callee": [],
+        "function_content": "static int asm_parse_vfp_regvar(int t, int double_precision)\r\n{\r\n    if (double_precision) {\r\n        if (t >= TOK_ASM_d0 && t <= TOK_ASM_d15)\r\n            return t - TOK_ASM_d0;\r\n    } else {\r\n        if (t >= TOK_ASM_s0 && t <= TOK_ASM_s31)\r\n            return t - TOK_ASM_s0;\r\n    }\r\n    return -1;\r\n}"
+    },
+    {
+        "function_id": "tccdbg.c::put_stabs",
+        "caller": [
+            "tccdbg.c::tcc_debug_start",
+            "tccdbg.c::tcc_debug_bincl",
+            "tccdbg.c::tcc_debug_finish",
+            "tccdbg.c::tcc_debug_stabs",
+            "tccdbg.c::tcc_debug_new",
+            "tccdbg.c::put_stabn",
+            "tccdbg.c::put_stabs_r"
+        ],
+        "callee": [
+            "tccelf.c::put_elf_str"
+        ],
+        "function_content": "static void put_stabs(TCCState *s1, const char *str, int type, int other, int desc,\r\n                      unsigned long value)\r\n{\r\n    Stab_Sym *sym;\r\n\r\n    unsigned offset;\r\n    if (type == N_SLINE\r\n        && (offset = stab_section->data_offset)\r\n        && (sym = (Stab_Sym*)(stab_section->data + offset) - 1)\r\n        && sym->n_type == type\r\n        && sym->n_value == value) {\r\n        /* just update line_number in previous entry */\r\n        sym->n_desc = desc;\r\n        return;\r\n    }\r\n\r\n    sym = section_ptr_add(stab_section, sizeof(Stab_Sym));\r\n    if (str) {\r\n        sym->n_strx = put_elf_str(stab_section->link, str);\r\n    } else {\r\n        sym->n_strx = 0;\r\n    }\r\n    sym->n_type = type;\r\n    sym->n_other = other;\r\n    sym->n_desc = desc;\r\n    sym->n_value = value;\r\n}",
+        "vul": false,
+        "positive": 0.20956845581531525,
+        "fixed": true,
+        "fixed_time": "2024-12-18"
+    },
+    {
+        "function_id": "tccdbg.c::put_stabs_r",
+        "caller": [
+            "tccdbg.c::tcc_debug_line",
+            "tccdbg.c::tcc_debug_start",
+            "tccdbg.c::tcc_debug_funcstart",
+            "tccdbg.c::tcc_debug_end",
+            "tccdbg.c::tcc_debug_finish",
+            "tccdbg.c::tcc_debug_stabs"
+        ],
+        "callee": [
+            "tccdbg.c::put_stabs",
+            "tccelf.c::put_elf_reloc"
+        ],
+        "function_content": "static void put_stabs_r(TCCState *s1, const char *str, int type, int other, int desc,\r\n                        unsigned long value, Section *sec, int sym_index)\r\n{\r\n    put_elf_reloc(symtab_section, stab_section,\r\n                  stab_section->data_offset + 8,\r\n                  sizeof ((Stab_Sym*)0)->n_value == PTR_SIZE ? R_DATA_PTR : R_DATA_32,\r\n                  sym_index);\r\n    put_stabs(s1, str, type, other, desc, value);\r\n}",
+        "vul": false,
+        "positive": 0.4455152153968811,
+        "fixed": true,
+        "fixed_time": "2024-12-18"
+    },
+    {
+        "function_id": "tccdbg.c::put_stabn",
+        "caller": [
+            "tccdbg.c::tcc_debug_finish",
+            "tccdbg.c::tcc_debug_line",
+            "tccdbg.c::tcc_debug_eincl"
+        ],
+        "callee": [
+            "tccdbg.c::put_stabs"
+        ],
+        "function_content": "static void put_stabn(TCCState *s1, int type, int other, int desc, int value)\r\n{\r\n    put_stabs(s1, NULL, type, other, desc, value);\r\n}",
+        "vul": false,
+        "positive": 0.4449266493320465,
+        "fixed": true,
+        "fixed_time": "2024-12-18"
+    },
+    {
+        "function_id": "tccdbg.c::dwarf_get_section_sym",
+        "caller": [
+            "tccdbg.c::tcc_debug_frame_end",
+            "tccdbg.c::tcc_debug_start"
+        ],
+        "callee": [
+            "tccelf.c::put_elf_sym"
+        ],
+        "function_content": "static int dwarf_get_section_sym(Section *s)\r\n{\r\n    TCCState *s1 = s->s1;\r\n    return put_elf_sym(symtab_section, 0, 0,\r\n                       ELFW(ST_INFO)(STB_LOCAL, STT_SECTION), 0,\r\n                       s->sh_num, NULL);\r\n}",
+        "vul": false,
+        "positive": 0.11500774323940277,
+        "fixed": true,
+        "fixed_time": "2024-12-18"
+    },
+    {
+        "function_id": "win32/lib/wincrt1.c::_runtwinmain",
+        "caller": [],
+        "callee": [
+            "win32\\lib\\wincrt1.c::go_winmain"
+        ],
+        "function_content": "int _runtwinmain(int argc, /* as tcc passed in */ char **argv)\r\n{\r\n#ifdef UNICODE\r\n    _startupinfo start_info = {0};\r\n    __tgetmainargs(&__argc, &__targv, &_tenviron, 0, &start_info);\r\n    /* may be wrong when tcc has received wildcards (*.c) */\r\n    if (argc < __argc)\r\n        __targv += __argc - argc, __argc = argc;\r\n#else\r\n    __argc = argc, __targv = argv;\r\n#endif\r\n    return go_winmain(__argc > 1 ? __targv[1] : NULL);\r\n}",
+        "vul": false,
+        "positive": 0.18108369410037994,
+        "fixed": true,
+        "fixed_time": "2024-12-18"
+    }
+]
