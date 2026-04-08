@@ -1,0 +1,20 @@
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.env
+
+# Node modules
+node_modules/
+
+# Generated backend artifacts
+3s_back/preprocessed_data/
+3s_back/results/
+3s_back/user_sys/toDetect/
+
+# Logs and temporary files
+*.log
+.DS_Store

@@ -79,16 +79,18 @@ def extract_func(file_path):
     return functions
 
 
-def clone_project(github_path, local_path='./user_sys/toDetect/'):
+def clone_project(github_path, local_path='./user_sys/toDetect/', target_name=None):
     try:
         # 确保本地路径存在
         if not os.path.exists(local_path):
             os.makedirs(local_path)
 
-        # 构建项目名
-        project_name = github_path.split('/')[-1]
-        if project_name.endswith('.git'):
-            project_name = project_name[:-4]
+        # 构建仓库名
+        repo_name = github_path.split('/')[-1]
+        if repo_name.endswith('.git'):
+            repo_name = repo_name[:-4]
+
+        project_name = target_name or repo_name
 
         # 构建完整的本地项目路径
         full_local_path = os.path.join(local_path, project_name)
@@ -98,12 +100,12 @@ def clone_project(github_path, local_path='./user_sys/toDetect/'):
             print(f"Repository already cloned at {full_local_path}.")
             return project_name
 
-        # 执行 Git 克隆
+        # 执行 Git 克隆，目标目录使用用户自定义项目名或仓库名
         subprocess.check_call(['git', 'clone', github_path, full_local_path])
 
         return project_name
     except subprocess.CalledProcessError as e:
-        print("An error occurred while cloning the repository.")
+        print("An error occurred while cloning the repository.", e)
         return None
 
 

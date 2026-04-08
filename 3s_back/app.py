@@ -350,11 +350,11 @@ def upload_project():
         Pmodel = request.form.get('Pmodel')
 
         # 克隆 GitHub 仓库
-        project_folder_name = upgrade.clone_project(GitHubPath)
+        project_folder_name = upgrade.clone_project(GitHubPath, target_name=Pname)
         if project_folder_name:
             # 计算文件和函数数量
-            project_path = f"user_sys\\toDetect\\{Pname}"
-            file_count, func_count = upgrade.count_files_and_functions(f'user_sys/toDetect/{Pname}')
+            project_path = os.path.join('user_sys', 'toDetect', project_folder_name)
+            file_count, func_count = upgrade.count_files_and_functions(project_path)
 
             # 创建项目记录并保存到数据库
             upgrade.create_new_project(user, Pname, Pmodel, project_path, file_count, func_count)
@@ -378,12 +378,11 @@ def upload_project():
 
         # 保存并解压上传的文件
         file_path = upgrade.handle_uploaded_file(uploaded_file, Pname)
-        extracted_folder_path = upgrade.unzip_file(file_path,Pname)
-        extracted_folder_path = extracted_folder_path.replace('user_sys/', '')  # 清理路径
+        extracted_folder_path = upgrade.unzip_file(file_path, Pname)
         # 计算文件和函数数量
-        file_count, func_count = upgrade.count_files_and_functions(f'user_sys/toDetect/{Pname}')
+        project_path = os.path.join('user_sys', 'toDetect', Pname)
+        file_count, func_count = upgrade.count_files_and_functions(project_path)
         # 创建项目记录并保存到数据库
-        project_path = r"user_sys\\toDetect\\" + f"{Pname}"
         pid = upgrade.create_new_project(user, Pname, Pmodel, project_path, file_count, func_count)
 
         return jsonify({
